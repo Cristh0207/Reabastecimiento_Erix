@@ -18,7 +18,14 @@ from modules.demo_generator import generate_demo_movements, generate_demo_kits
 from modules.inventory_engine import calculate_stock
 from modules.consumption_engine import calculate_consumption, calculate_projection
 from modules.reorder_engine import calculate_reorder, generate_excel_export, get_export_filename
-from modules.dashboard import render_kpis, render_main_table, render_charts, render_export_button
+from modules.dashboard import (
+    render_main_table,
+    render_kpis,
+    render_charts,
+    render_product_explorer,
+    render_specific_analysis,
+    render_export_button
+)
 
 
 # ---------------------------------------------------------------------------
@@ -71,14 +78,28 @@ st.markdown("""
     }
 
     /* ===== Global Viewport Lock & Fixed Footer ===== */
+    /* Apagar scrollbars por completo */
+    ::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+    * {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+
     .stApp {
         background: var(--bg-primary);
         font-family: 'Inter', sans-serif;
         color: var(--text-primary);
     }
     
-    body, [data-testid="stAppViewContainer"] {
+    body, html, [data-testid="stAppViewContainer"] {
         overflow: hidden !important;
+        margin: 0;
+        padding: 0;
+        height: 100vh;
     }
     
     [data-testid="stAppViewBlockContainer"] {
@@ -92,13 +113,31 @@ st.markdown("""
         max-width: 1400px;
     }
     
-    /* Make internal container scrollable without scrolling the browser page */
+    /* Make internal container perfectly fit without scroll */
     [data-testid="stAppViewBlockContainer"] > div:first-child {
         flex: 1;
-        overflow-y: auto !important;
-        overflow-x: hidden;
-        padding-bottom: 5rem !important; /* avoid overlapping with footer */
+        overflow: hidden !important;
+        padding-bottom: 0.5rem !important; 
         padding-top: 0.5rem !important;
+    }
+
+    /* ===== Responsive dynamic heights for charts & tables using VH ===== */
+    /* Anulamos absolutamente el scroll principal nativo de la UI principal de Streamlit */
+    section[data-testid="stMain"], [data-testid="stMainBlockContainer"] {
+        overflow: hidden !important;
+        max-height: 100vh !important;
+    }
+
+    /* Aseguramos que la tabla nunca exceda el 45% del viewport para caber junto al header y footer en pantallas críticas. */
+    div[data-testid="stDataFrame"], div[data-testid="stDataFrame"] > div:first-child, div[data-testid="stDataFrame"] iframe {
+        max-height: 45vh !important;
+        overflow-y: hidden !important;
+        /* NOTA: No usamos height forzado (ej. height: 48vh) porque fuerza rectángulos rotos. Max-height solo delimita dinámicamente si es necesario */
+    }
+
+    div[data-testid="stPlotlyChart"], div[data-testid="stPlotlyChart"] iframe {
+        height: 52vh !important;
+        min-height: 250px !important;
     }
 
     .global-footer-container {
@@ -115,7 +154,31 @@ st.markdown("""
         position: static !important;
     }
 
-    /* Keep sidebar container settings */
+    /* ===== Botón Exportar Luminoso Neón Corporativo ===== */
+    /* Target genérico a los botones secundarios (como el de descargar) */
+    [data-testid="baseButton-secondary"] {
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+        border: 1px solid var(--cv-navy-light) !important;
+        background-color: transparent !important;
+        color: var(--cv-navy-dark) !important;
+    }
+    
+    [data-testid="baseButton-secondary"]:hover {
+        background-color: var(--cv-navy-dark) !important;
+        color: #FFFFFF !important;
+        border-color: var(--cv-navy-light) !important;
+        /* Efecto Neón Azul Corporativo Intenso */
+        box-shadow: 0 0 10px rgba(43, 76, 126, 0.8), 
+                    0 0 20px rgba(43, 76, 126, 0.6), 
+                    0 0 30px rgba(27, 58, 92, 0.4) !important;
+        transform: translateY(-2px) !important;
+    }
+    
+    [data-testid="baseButton-secondary"]:active {
+        box-shadow: 0 0 5px rgba(43, 76, 126, 0.8), 
+                    0 0 12px rgba(27, 58, 92, 0.6) !important;
+        transform: translateY(1px) scale(0.98) !important;
+    }
 
     /* ===== Sidebar ===== */
     section[data-testid="stSidebar"] {
@@ -137,11 +200,21 @@ st.markdown("""
         min-height: 0 !important;
     }
 
+    /* Force sidebar content to be flex and occupy full height */
+    [data-testid="stSidebarContent"] {
+        display: flex;
+        flex-direction: column;
+    }
+
     [data-testid="stSidebarUserContent"] {
-        padding-top: 1.5rem !important; /* Starts fully from the top */
-        padding-bottom: 0rem;
+        padding-top: 2.5rem !important; /* Ajuste visual superior sidebar */
+        padding-bottom: 1rem;
         padding-left: 1rem;
         padding-right: 1rem;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 100%;
     }
 
     section[data-testid="stSidebar"] .stMarkdown h1,
@@ -163,8 +236,8 @@ st.markdown("""
         background: var(--accent-gradient);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 2.2rem;
-        font-weight: 800;
+        font-size: 1.2rem;
+        font-weight: 450;
         text-align: center;
         margin-bottom: 0.1rem;
         letter-spacing: -0.02em;
@@ -188,9 +261,9 @@ st.markdown("""
     .main-subtitle {
         text-align: center;
         color: var(--text-secondary);
-        font-size: 0.95rem;
+        font-size: 0.8rem;
         font-weight: 400;
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.2rem;
     }
 
     /* ===== KPI Grid ===== */
@@ -210,7 +283,7 @@ st.markdown("""
         background: var(--bg-card);
         border: 1px solid var(--border-color);
         border-radius: 14px;
-        padding: 1.2rem 1rem;
+        padding: 1vh 0.5vw;
         text-align: center;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: var(--shadow-card);
@@ -218,8 +291,8 @@ st.markdown("""
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: 128px;
-        height: 128px;
+        min-height: 14vh;
+        height: 14vh;
         border-top: 3px solid var(--cv-steel);
     }
 
@@ -231,11 +304,11 @@ st.markdown("""
 
     .kpi-label {
         color: var(--text-secondary);
-        font-size: 0.78rem;
+        font-size: clamp(0.65rem, 1.2vh, 0.8rem);
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
-        margin-bottom: 0.4rem;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.3vh;
         white-space: nowrap;
     }
 
@@ -243,15 +316,15 @@ st.markdown("""
         background: var(--accent-gradient);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 1.8rem;
+        font-size: clamp(1.4rem, 3.5vh, 2rem);
         font-weight: 800;
-        line-height: 1.2;
+        line-height: 1.1;
     }
 
     .kpi-sub {
         color: var(--text-secondary);
-        font-size: 0.7rem;
-        margin-top: 0.2rem;
+        font-size: clamp(0.55rem, 1vh, 0.7rem);
+        margin-top: 0.2vh;
     }
 
     .kpi-risk {
@@ -268,18 +341,43 @@ st.markdown("""
         border-top-color: var(--danger);
     }
 
-    /* ===== Logo ===== */
+    /* ===== Logo & Header Main Title Alingment ===== */
+    /* Empujar hacia arriba forzando visibilidad en el borde superior del viewport */
+    .stApp > header {
+        display: none !important;
+        height: 0px !important;
+    }
+
+    /* Container base que Streamlit inyecta arriba del contenido */
+    /* Quitamos el padding top gigante por defecto (aprox 6rem) */
+    .block-container,
+    [data-testid="stAppViewBlockContainer"] {
+        padding-top: 1rem !important; 
+        padding-bottom: 2rem !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+        margin-top: 0 !important; 
+    }
+
+    /* También quitamos cualquier espacio del primer hijo */
+    .block-container > div:first-child,
+    [data-testid="stAppViewBlockContainer"] > div:first-child {
+        padding-top: 0.5rem !important;
+        margin-top: 0.5rem !important; /* Empezando completamente en neutro 0 desde el recorte global absoluto */
+    }
+
     .logo-header {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 1.5rem;
-        margin-bottom: 0.3rem;
-        padding: 0.5rem 0;
+        gap: 0.8rem;
+        margin-top: 0rem !important; /* Neutro base para ganar la pequeña bajada natural */
+        margin-bottom: 0.5rem;
+        padding: 0 !important;
     }
 
     .logo-header img {
-        height: 52px;
+        height: 38px; /* Recobrable tamaño normal ya que hay espacio */
         object-fit: contain;
     }
 
@@ -548,6 +646,39 @@ st.markdown("""
         border-radius: 2px;
         margin: 0.5rem 0 1.5rem 0;
     }
+
+    /* ===== Sidebar Primary Buttons — Gold Corporate Style (Global) ===== */
+    div[data-testid="stSidebar"] button[kind="primary"],
+    div[data-testid="stSidebar"] button[data-testid="baseButton-primary"],
+    section[data-testid="stSidebar"] button[kind="primary"],
+    section[data-testid="stSidebar"] button[data-testid="baseButton-primary"] {
+        background-color: var(--cv-gold) !important;
+        background: var(--cv-gold) !important;
+        color: var(--cv-navy-dark) !important;
+        border: 0 solid transparent !important;
+        font-weight: 600 !important;
+        box-shadow: 0 0 15px rgba(226, 179, 93, 0.3) !important;
+        transition: all 0.3s ease !important;
+        border-radius: 8px !important;
+    }
+
+    div[data-testid="stSidebar"] button[kind="primary"] p,
+    div[data-testid="stSidebar"] button[data-testid="baseButton-primary"] p,
+    section[data-testid="stSidebar"] button[kind="primary"] p,
+    section[data-testid="stSidebar"] button[data-testid="baseButton-primary"] p {
+        color: var(--cv-navy-dark) !important;
+    }
+
+    div[data-testid="stSidebar"] button[kind="primary"]:hover,
+    div[data-testid="stSidebar"] button[data-testid="baseButton-primary"]:hover,
+    section[data-testid="stSidebar"] button[kind="primary"]:hover,
+    section[data-testid="stSidebar"] button[data-testid="baseButton-primary"]:hover {
+        background-color: var(--cv-gold-light) !important;
+        background: var(--cv-gold-light) !important;
+        box-shadow: 0 0 20px rgba(226, 179, 93, 0.5) !important;
+        transform: translateY(-2px) !important;
+        border: 0 solid transparent !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -674,67 +805,126 @@ with st.sidebar:
                 <div style="color:var(--cv-gold-light); font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px;">Análisis</div>
             </div>
             <style>
+            /* Ocultar el marcador nativo redondeado de fondo en radiogroup de Streamlit */
+            section[data-testid="stSidebar"] div[role="radiogroup"] > div {
+                display: none !important;
+            }
             /* Hide the native radio circles */
             section[data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child {
                 display: none !important;
             }
             /* Style the radio buttons to look like clean menu items */
             section[data-testid="stSidebar"] div[role="radiogroup"] > label {
-                padding: 0.7rem 1rem;
-                background: transparent;
-                border-radius: 8px;
-                margin-bottom: 0.2rem;
-                border-left: 3px solid transparent;
+                position: relative !important;
+                margin: 0.2rem 0 0.2rem 0 !important;
+                padding: 0.7rem 1.0rem 0.7rem 0.6rem !important;
+                background: transparent !important;
                 transition: all 0.3s ease-in-out;
                 cursor: pointer;
+                display: flex;
+                z-index: 1; /* Texto por encima del efecto aura */
+                overflow: visible !important;
             }
-            section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
-                background: rgba(255,255,255,0.06);
+            /* El aura luminosa como un contenedor píldora estirado absoluto */
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label::before {
+                content: "";
+                position: absolute;
+                top: 0; bottom: 0;
+                left: 0.5rem; /* Inicia más atrás, dándole respiro al icono */
+                right: -100px; /* Extensión grande hacia la derecha para asegurar que se corte justo en el límite con el contenido principal */
+                background: transparent;
+                border-radius: 6px; /* Curvo en todos los lados */
+                z-index: -1;
+                transition: all 0.3s ease-in-out;
+                pointer-events: none;
             }
-            /* Neon gold glow on active selection */
-            section[data-testid="stSidebar"] div[role="radiogroup"] > label[data-checked="true"] {
-                background: rgba(226, 179, 93, 0.15) !important;
-                border-left: 3px solid var(--cv-gold) !important;
-                box-shadow: 0 0 12px rgba(226, 179, 93, 0.3), inset 0 0 8px rgba(226, 179, 93, 0.1) !important;
+            /* Al pasar el ratón o activarlo, la luz surge del contenedor absoluto ::before */
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover::before,
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked)::before {
+                background: rgba(0, 191, 255, 0.15) !important;
+                box-shadow: inset 0 0 20px rgba(0, 191, 255, 0.3) !important;
+            }
+            /* Al pasar el mouse, el texto se vuelve blanquito radiante */
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover p {
+                color: #FFFFFF !important;
+            }
+            /* Al pasar el mouse, el ícono también se enciende en amarillo neón */
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover p span {
+                color: #FFD700 !important;
+                font-size: 1.4rem !important;
+                text-shadow: 0 0 10px rgba(255, 215, 0, 0.8) !important;
             }
             section[data-testid="stSidebar"] div[role="radiogroup"] p {
                 color: rgba(255,255,255,0.7) !important;
-                font-size: 0.9rem;
+                font-size: 1.05rem; /* Tamaño más grande y legible */
                 font-weight: 500;
+                transition: color 0.3s ease, text-shadow 0.3s ease;
+                white-space: nowrap !important; /* Impide que el texto se rompa en dos líneas */
             }
-            section[data-testid="stSidebar"] div[role="radiogroup"] > label[data-checked="true"] p {
-                color: var(--cv-gold-light) !important;
-                font-weight: 700;
+            /* Only the icon glows yellow and gets bigger */
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p {
+                color: #FFFFFF !important; /* Blanca normal */
+                font-weight: 500;
+                text-shadow: none !important;
+            }
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p span {
+                color: #FFD700 !important; /* Icono amarillo */
+                font-size: 1.4rem !important; /* Icono más grande */
+                text-shadow: 0 0 10px rgba(255, 215, 0, 0.8) !important;
             }
             /* Override sidebar text color */
             section[data-testid="stSidebar"] {
                 color: #FFFFFF;
             }
-            /* Style the back button in sidebar to match primary gold style */
-            section[data-testid="stSidebar"] button[kind="primary"] {
-                background: var(--cv-gold) !important;
-                color: var(--cv-navy-dark) !important;
-                border: none !important;
-                font-weight: 600 !important;
-                box-shadow: 0 0 15px rgba(226, 179, 93, 0.3) !important;
-            }
-            section[data-testid="stSidebar"] button[kind="primary"]:hover {
-                background: var(--cv-gold-light) !important;
-                box-shadow: 0 0 20px rgba(226, 179, 93, 0.5) !important;
-            }
             </style>
         ''', unsafe_allow_html=True)
 
         if 'dashboard_section' not in st.session_state:
-            st.session_state.dashboard_section = ":material/monitoring: Indicadores Clave"
+            st.session_state.dashboard_section = ":material/table_view: Tabla de Detalle"
 
         st.session_state.dashboard_section = st.radio(
             "Secciones",
-            options=[":material/monitoring: Indicadores Clave", ":material/bar_chart: Visualizaciones", ":material/table_view: Tabla de Detalle"],
+            options=[
+                ":material/table_view: Tabla de Detalle", 
+                ":material/search: Buscador de Medicamento",
+                ":material/analytics: Análisis Específicos",
+                ":material/monitoring: Indicadores Clave", 
+                ":material/bar_chart: Visualizaciones"
+            ],
             label_visibility="collapsed"
         )
-        
-        st.markdown('<div style="margin-top: 3rem;"></div>', unsafe_allow_html=True)
+        # CSS para anclar el boton Volver al Inicio al fondo del sidebar
+        st.markdown('''
+            <style>
+            /* Nivel 1: stSidebarUserContent - contenedor principal */
+            [data-testid="stSidebarUserContent"] {
+                display: flex !important;
+                flex-direction: column !important;
+                height: 100vh !important;
+            }
+            
+            /* Nivel 2: div intermedio que Streamlit genera */
+            [data-testid="stSidebarUserContent"] > div {
+                display: flex !important;
+                flex-direction: column !important;
+                flex-grow: 1 !important;
+            }
+
+            /* Nivel 3: stVerticalBlock - el bloque que contiene todos los componentes */
+            [data-testid="stSidebarUserContent"] > div > div[data-testid="stVerticalBlock"] {
+                display: flex !important;
+                flex-direction: column !important;
+                flex-grow: 1 !important;
+            }
+
+            /* Nivel 4: El ultimo stElementContainer (el del boton) se empuja al fondo */
+            [data-testid="stSidebarUserContent"] > div > div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"]:last-of-type {
+                margin-top: auto !important;
+                padding-bottom: 2rem !important;
+            }
+            </style>
+        ''', unsafe_allow_html=True)
+
         if st.button("Volver al Inicio", icon=":material/arrow_back:", help="Limpiar datos y regresar", use_container_width=True, type="primary"):
             st.session_state.df_movements = None
             st.session_state.df_kits = None
@@ -761,6 +951,49 @@ if st.session_state.data_loaded and st.session_state.df_movements is not None an
             # Step 3: Reorder
             df_reorder = calculate_reorder(df_stock, df_consumption, st.session_state.df_kits)
 
+        # === Render Header + Dashboard ===
+        col_hdr1, col_hdr2 = st.columns([5, 1])
+        
+        with col_hdr1:
+            if logo_b64:
+                st.markdown(
+                    f"""
+                    <div style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 1.5rem; margin-top: 0rem; padding-left: 5rem;">
+                        <img src="data:image/png;base64,{logo_b64}" alt="Clínica Vida" style="height: 60px;">
+                        <div class="main-title" style="text-align: left; font-size: 2.2rem; margin: 0; line-height: 1;">Sistema de Reabastecimiento</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown('<div class="main-title" style="margin-top: 0rem; text-align: center;">❖ Sistema de Reabastecimiento</div>', unsafe_allow_html=True)
+
+            st.markdown(
+                '<div class="main-subtitle" style="margin-top: 0.8rem; margin-bottom: 1rem;">Análisis de Inventario &bull; Bodegas 1185 &amp; 1188 &bull; Modelo Consignación</div>',
+                unsafe_allow_html=True,
+            )
+            
+        with col_hdr2:
+            st.empty() # Arrow button removed from here as per user request (moved back to bottom sidebar)
+            
+        st.markdown('<div class="gold-bar" style="margin-top: -0.5rem;"></div>', unsafe_allow_html=True)
+
+        # Content Router Based on Sidebar Selection
+        if st.session_state.dashboard_section == ":material/monitoring: Indicadores Clave":
+            render_kpis(df_reorder)
+            
+        elif st.session_state.dashboard_section == ":material/table_view: Tabla de Detalle":
+            # Pre-generar el archivo para pasarlo a la tabla e integrarlo en el titulo
+            excel_buffer = generate_excel_export(df_reorder)
+            filename = get_export_filename()
+            render_main_table(df_reorder, excel_buffer, filename)
+        elif st.session_state.dashboard_section == ":material/search: Buscador de Medicamento":
+            render_product_explorer(df_reorder, df_consumption, st.session_state.df_kits)
+        elif st.session_state.dashboard_section == ":material/analytics: Análisis Específicos":
+            render_specific_analysis(df_reorder, df_consumption, st.session_state.df_kits)
+        elif st.session_state.dashboard_section == ":material/bar_chart: Visualizaciones":
+            render_charts(df_reorder)
+            
         # === Temporary Success Banner ===
         if st.session_state.get('show_success_banner', False):
             st.markdown('''
@@ -773,12 +1006,12 @@ if st.session_state.data_loaded and st.session_state.df_movements is not None an
             }
             .floating-toast-white {
                 position: fixed;
-                top: 2rem;
+                top: 1rem;
                 right: 2rem;
                 background: #FFFFFF;
                 color: var(--cv-navy);
                 border-radius: 8px;
-                padding: 1rem 1.5rem;
+                padding: 0.5rem 1.5rem;
                 box-shadow: 0 4px 20px rgba(0,0,0,0.15);
                 display: flex;
                 align-items: center;
@@ -795,48 +1028,6 @@ if st.session_state.data_loaded and st.session_state.df_movements is not None an
             </div>
             ''', unsafe_allow_html=True)
             st.session_state.show_success_banner = False
-        # === Render Header + Dashboard ===
-        col_hdr1, col_hdr2 = st.columns([5, 1])
-        
-        with col_hdr1:
-            if logo_b64:
-                st.markdown(
-                    f"""
-                    <div style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 1.5rem; margin-top: -2.0rem; padding-left: 5rem;">
-                        <img src="data:image/png;base64,{logo_b64}" alt="Clínica Vida" style="height: 60px;">
-                        <div class="main-title" style="text-align: left; font-size: 2.2rem; margin: 0; line-height: 1;">Sistema de Reabastecimiento</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.markdown('<div class="main-title" style="margin-top: -2.0rem; text-align: center;">❖ Sistema de Reabastecimiento</div>', unsafe_allow_html=True)
-
-            st.markdown(
-                '<div class="main-subtitle" style="margin-top: 0.8rem; margin-bottom: 1rem;">Análisis de Inventario &bull; Bodegas 1185 &amp; 1188 &bull; Modelo Consignación</div>',
-                unsafe_allow_html=True,
-            )
-            
-        with col_hdr2:
-            st.empty() # Arrow button removed from here as per user request (moved back to bottom sidebar)
-            
-        st.markdown('<div class="gold-bar" style="margin-top: -0.5rem;"></div>', unsafe_allow_html=True)
-
-        # Content Router Based on Sidebar Selection
-        if st.session_state.dashboard_section == ":material/monitoring: Indicadores Clave":
-            render_kpis(df_reorder)
-            
-        elif st.session_state.dashboard_section == ":material/bar_chart: Visualizaciones":
-            render_charts(df_reorder)
-            
-        elif st.session_state.dashboard_section == ":material/table_view: Tabla de Detalle":
-            render_main_table(df_reorder)
-            
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            # Export
-            excel_buffer = generate_excel_export(df_reorder)
-            filename = get_export_filename()
-            render_export_button(excel_buffer, filename)
 
     except Exception as e:
         st.error(f"❌ Error en el procesamiento: {str(e)}")
@@ -851,13 +1042,16 @@ else:
     ) if logo_b64 else '<div style="font-size: 4rem; margin-bottom: 0.5rem;"><span class="material-symbols-rounded">local_pharmacy</span></div>'
     st.markdown(
         f"""
-        <div style="text-align: center; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(43,76,126,0.06); max-width: 850px; margin: auto;">
-            {logo_img}
-            <h2 style="color: #2B4C7E; margin-bottom: 0.5rem; font-size: 2rem;">Bienvenido al Sistema de Reabastecimiento</h2>
-            <p style="color: #556677; font-size: 1.1rem; line-height: 1.5; margin: 0;">
-                Cargue sus archivos de movimientos y canastas desde la barra lateral,
-                o genere datos de prueba para explorar el sistema.
-            </p>
+        <div style="display: flex; align-items: center; justify-content: center; min-height: 80vh; width: 100%;">
+            <div style="text-align: center; padding: 3rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(43,76,126,0.06); max-width: 850px; width: 100%;">
+                {logo_img}
+                <h2 style="color: #2B4C7E; margin-bottom: 0.5rem; font-size: 2rem;">Bienvenido al Sistema de Reabastecimiento</h2>
+                <p style="color: #556677; font-size: 1.1rem; line-height: 1.5; margin: 0;">
+                    Cargue sus archivos de movimientos y canastas desde la barra lateral,
+                    o genere datos de prueba para explorar el sistema.
+                </p>
+            </div>
+        </div>
         """,
         unsafe_allow_html=True,
     )
