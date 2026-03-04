@@ -192,12 +192,28 @@ st.markdown("""
         overflow: hidden !important;
     }
     
-    [data-testid="stSidebarHeader"], 
+    /* El header superior se oculta globalmente para inmersión */
     [data-testid="stHeader"] {
         display: none !important;
         padding: 0 !important;
         height: 0 !important;
         min-height: 0 !important;
+    }
+
+    /* 🔥 El usuario solicitó EXCLUSIVAMENTE la flecha. Restaurar la flecha de expandir (>) como flotante. */
+    [data-testid="collapsedControl"] {
+        display: flex !important;
+        position: fixed !important;
+        top: 0.2rem !important;
+        left: 0.2rem !important;
+        z-index: 999999 !important;
+        background: transparent !important;
+    }
+
+    /* El header de la barra lateral se mantiene visible para retener la flecha de cerrado (<) */
+    [data-testid="stSidebarHeader"] {
+        background: transparent !important;
+        padding: 1rem 1rem 0 0 !important; /* Mínimo para que la flecha quede en su sitio */
     }
 
     /* Force sidebar content to be flex and occupy full height */
