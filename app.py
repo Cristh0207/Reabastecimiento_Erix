@@ -679,6 +679,74 @@ st.markdown("""
         transform: translateY(-2px) !important;
         border: 0 solid transparent !important;
     }
+
+    /* ===== RESPONSIVIDAD UNIVERSAL (Móviles, Tablets, Pantallas Reducidas) ===== */
+    @media screen and (max-width: 1024px) {
+        /* 1. Reactivar el scroll normal general a nivel global de HTML/BODY */
+        body, html, 
+        [data-testid="stAppViewContainer"], 
+        section[data-testid="stMain"], 
+        [data-testid="stMainBlockContainer"] {
+            overflow-y: auto !important;
+            height: auto !important;
+            max-height: none !important;
+        }
+        
+        /* Permitir que el content bloque fluya libremente */
+        [data-testid="stAppViewBlockContainer"] {
+            height: auto !important;
+            max-height: none !important;
+            padding-bottom: 3rem !important; /* Espacio mínimo final */
+        }
+
+        /* 2. Quitar restricciones de altura extremas y fijas para tablas y gráficos */
+        div[data-testid="stDataFrame"], 
+        div[data-testid="stDataFrame"] > div:first-child, 
+        div[data-testid="stDataFrame"] iframe {
+            max-height: 70vh !important;
+            min-height: 480px !important;
+            overflow-y: auto !important;
+        }
+
+        div[data-testid="stPlotlyChart"], 
+        div[data-testid="stPlotlyChart"] iframe {
+            height: auto !important;
+            min-height: 380px !important;
+        }
+
+        /* 3. Ajustar paddings excesivos en pantallas más pequeñas */
+        .block-container,
+        [data-testid="stAppViewBlockContainer"] {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            padding-bottom: 4rem !important; 
+        }
+        
+        .global-footer-container {
+            position: relative;
+            bottom: 0;
+            margin-top: 2rem;
+            padding-bottom: 1rem;
+        }
+    }
+
+    @media screen and (max-width: 768px) {
+        /* Layout Mobile Extremo */
+        .kpi-grid {
+            grid-template-columns: 1fr;
+            gap: 0.8rem;
+        }
+        
+        .kpi-card {
+            min-height: 120px;
+            height: auto;
+            padding: 1.5rem 1rem;
+        }
+        
+        .logo-header img {
+            height: 30px; /* Reducir logo en móvil */
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
