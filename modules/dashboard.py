@@ -139,7 +139,7 @@ def render_main_table(df_reorder: pd.DataFrame) -> None:
     st.dataframe(
         df_display,
         use_container_width=True,
-        height=500,
+        height=350,
         column_config={
             "Estado": st.column_config.TextColumn(
                 "Estado",
@@ -202,7 +202,7 @@ def render_charts(df_reorder: pd.DataFrame) -> None:
                 title="Top 20 Productos con Mayor Cantidad a Pedir",
                 xaxis_title="Unidades a Pedir",
                 yaxis_title="",
-                height=600,
+                height=380,
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
                 font=dict(family="Inter, sans-serif"),
@@ -241,7 +241,7 @@ def render_charts(df_reorder: pd.DataFrame) -> None:
             title="Distribución de Cobertura en Días",
             xaxis_title="Días de Cobertura",
             yaxis_title="Cantidad de Productos",
-            height=450,
+            height=340,
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             font=dict(family="Inter, sans-serif"),
@@ -270,7 +270,7 @@ def render_charts(df_reorder: pd.DataFrame) -> None:
             xaxis_title="",
             yaxis_title="Unidades",
             barmode="group",
-            height=500,
+            height=380,
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             font=dict(family="Inter, sans-serif"),

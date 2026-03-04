@@ -98,7 +98,7 @@ st.markdown("""
         overflow-y: auto !important;
         overflow-x: hidden;
         padding-bottom: 5rem !important; /* avoid overlapping with footer */
-        padding-top: 2rem !important;
+        padding-top: 0.5rem !important;
     }
 
     .global-footer-container {
@@ -670,38 +670,57 @@ with st.sidebar:
         st.markdown(f'<div class="sidebar-title">{favicon_img} Menú Principal</div>', unsafe_allow_html=True)
         
         st.markdown('''
-            <div style="margin-top: 2rem; margin-bottom: 0.5rem;">
-                <div style="color:var(--cv-steel-light); font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px;">Analytics</div>
+            <div style="margin-top: 1.5rem; margin-bottom: 0.5rem;">
+                <div style="color:var(--cv-gold-light); font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px;">Análisis</div>
             </div>
             <style>
-            /* Style the radio buttons to look like clean, outline menu items */
+            /* Hide the native radio circles */
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child {
+                display: none !important;
+            }
+            /* Style the radio buttons to look like clean menu items */
             section[data-testid="stSidebar"] div[role="radiogroup"] > label {
-                padding: 0.8rem 1rem;
+                padding: 0.7rem 1rem;
                 background: transparent;
                 border-radius: 8px;
                 margin-bottom: 0.2rem;
                 border-left: 3px solid transparent;
-                transition: all 0.2s ease-in-out;
+                transition: all 0.3s ease-in-out;
+                cursor: pointer;
             }
             section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
-                background: rgba(255,255,255,0.05);
+                background: rgba(255,255,255,0.06);
             }
+            /* Neon gold glow on active selection */
             section[data-testid="stSidebar"] div[role="radiogroup"] > label[data-checked="true"] {
-                background: var(--cv-gold) !important;
-                border: none;
+                background: rgba(226, 179, 93, 0.15) !important;
+                border-left: 3px solid var(--cv-gold) !important;
+                box-shadow: 0 0 12px rgba(226, 179, 93, 0.3), inset 0 0 8px rgba(226, 179, 93, 0.1) !important;
             }
             section[data-testid="stSidebar"] div[role="radiogroup"] p {
-                color: #FFFFFF !important;
-                font-size: 0.95rem;
+                color: rgba(255,255,255,0.7) !important;
+                font-size: 0.9rem;
                 font-weight: 500;
             }
             section[data-testid="stSidebar"] div[role="radiogroup"] > label[data-checked="true"] p {
-                color: var(--cv-navy-dark) !important;
+                color: var(--cv-gold-light) !important;
                 font-weight: 700;
             }
-            /* Override global light theme label colors in sidebar just in case */
+            /* Override sidebar text color */
             section[data-testid="stSidebar"] {
                 color: #FFFFFF;
+            }
+            /* Style the back button in sidebar to match primary gold style */
+            section[data-testid="stSidebar"] button[kind="primary"] {
+                background: var(--cv-gold) !important;
+                color: var(--cv-navy-dark) !important;
+                border: none !important;
+                font-weight: 600 !important;
+                box-shadow: 0 0 15px rgba(226, 179, 93, 0.3) !important;
+            }
+            section[data-testid="stSidebar"] button[kind="primary"]:hover {
+                background: var(--cv-gold-light) !important;
+                box-shadow: 0 0 20px rgba(226, 179, 93, 0.5) !important;
             }
             </style>
         ''', unsafe_allow_html=True)
@@ -715,8 +734,8 @@ with st.sidebar:
             label_visibility="collapsed"
         )
         
-        st.markdown('<div style="margin-top: 15rem;"></div>', unsafe_allow_html=True)
-        if st.button("← Volver al Inicio", help="Limpiar datos y regresar", use_container_width=True):
+        st.markdown('<div style="margin-top: 3rem;"></div>', unsafe_allow_html=True)
+        if st.button("Volver al Inicio", icon=":material/arrow_back:", help="Limpiar datos y regresar", use_container_width=True, type="primary"):
             st.session_state.df_movements = None
             st.session_state.df_kits = None
             st.session_state.data_loaded = False
