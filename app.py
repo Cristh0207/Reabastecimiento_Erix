@@ -70,17 +70,52 @@ st.markdown("""
         --warning: #D97706;
     }
 
-    /* ===== Global ===== */
+    /* ===== Global Viewport Lock & Fixed Footer ===== */
     .stApp {
         background: var(--bg-primary);
         font-family: 'Inter', sans-serif;
         color: var(--text-primary);
     }
-
-    .main .block-container {
-        padding-top: 1rem;
+    
+    body, [data-testid="stAppViewContainer"] {
+        overflow: hidden !important;
+    }
+    
+    [data-testid="stAppViewBlockContainer"] {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        max-height: 100vh;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        position: relative;
         max-width: 1400px;
     }
+    
+    /* Make internal container scrollable without scrolling the browser page */
+    [data-testid="stAppViewBlockContainer"] > div:first-child {
+        flex: 1;
+        overflow-y: auto !important;
+        overflow-x: hidden;
+        padding-bottom: 5rem !important; /* avoid overlapping with footer */
+        padding-top: 2rem !important;
+    }
+
+    .global-footer-container {
+        position: absolute;
+        bottom: 1rem;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        z-index: 9999;
+        pointer-events: none;
+    }
+    
+    .element-container:has(.global-footer-container) {
+        position: static !important;
+    }
+
+    /* Keep sidebar container settings */
 
     /* ===== Sidebar ===== */
     section[data-testid="stSidebar"] {
@@ -328,12 +363,15 @@ st.markdown("""
         background-color: rgba(255, 255, 255, 0.015) !important;
         border: 1px dashed rgba(255, 255, 255, 0.15) !important;
         border-radius: 6px !important;
-        padding: 0.6rem 0.5rem !important;
+        padding: 0.4rem 0.5rem !important;
         transition: all 0.2s ease !important;
         min-height: auto !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.2rem !important;
+        text-align: center !important;
     }
 
     [data-testid="stFileUploaderDropzone"]:hover {
@@ -344,10 +382,18 @@ st.markdown("""
 
     [data-testid="stFileUploaderDropzone"] svg {
         display: block !important;
-        width: 25px !important;
-        height: 25px !important;
-        margin: 0 auto 5px auto !important;
+        width: 20px !important;
+        height: 20px !important;
+        margin: 0 auto 0 auto !important;
         color: var(--cv-steel-light) !important;
+    }
+    
+    [data-testid="stFileUploaderDropzoneInstructions"] {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
     }
     
     [data-testid="stFileUploaderDropzoneInstructions"] > div:nth-child(2) {
@@ -358,17 +404,17 @@ st.markdown("""
         color: rgba(255, 255, 255, 0.6) !important;
         font-size: 0.70rem !important;
         margin-top: 0 !important;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.2rem;
+        text-align: center !important;
     }
     
-    [data-testid="stFileUploaderDropzoneInstructions"] > div:first-child::after {
-        content: "Límite: 200MB • CSV / Excel";
-        font-size: 0.6rem;
-        color: rgba(255, 255, 255, 0.4);
-        margin-top: 2px;
+    [data-testid="stFileUploaderDropzoneInstructions"]::after {
+        content: "Límite: 200MB • CSV / Excel" !important;
+        font-size: 0.65rem !important;
+        color: rgba(255, 255, 255, 0.4) !important;
+        margin-top: 0 !important;
+        display: block !important;
+        text-align: center !important;
+        width: 100% !important;
     }
 
     [data-testid="stFileUploaderDropzone"] button {
@@ -376,6 +422,8 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         color: rgba(255, 255, 255, 0.75) !important;
         padding: 0 0.5rem !important;
+        margin: 0 auto !important;
+        align-self: center !important;
         min-height: 22px !important;
         line-height: 1 !important;
         font-size: 0.65rem !important;
@@ -413,10 +461,55 @@ st.markdown("""
     }
 
     /* ===== Success / Info boxes ===== */
-    .stAlert {
-        border-radius: 10px;
+    [data-testid="stAlert"], .stAlert {
+        border-radius: 6px !important;
+        padding: 0.4rem 0.6rem !important;
+        min-height: auto !important;
+        display: flex !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        justify-content: center !important;
+        align-items: center !important;
+        text-align: center !important;
     }
-
+    .stAlert > div, [data-testid="stAlert"] > div {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+        gap: 0.5rem !important;
+    }
+    .stAlert p {
+        font-size: 0.8rem !important;
+        margin: 0 !important;
+        line-height: 1.2 !important;
+    }
+    .stAlert [data-testid="stIconMaterial"] {
+        font-size: 1.1rem !important;
+    }
+    
+    /* ===== Primary Button Styling ===== */
+    [data-testid="baseButton-primary"] {
+        min-height: 28px !important;
+        height: 28px !important;
+        padding: 0 0.5rem !important;
+    }
+    [data-testid="baseButton-primary"] p {
+        font-size: 0.75rem !important;
+        margin: 0 !important;
+    }
+    [data-testid="baseButton-primary"] span.material-symbols-rounded {
+        font-size: 1rem !important;
+    }
+    
+    /* ===== Spinner Status ===== */
+    [data-testid="stSpinner"] p {
+        color: #FFFFFF !important;
+        font-size: 0.9rem !important;
+        font-weight: 500 !important;
+    }
+    
     /* ===== Section header (sidebar) ===== */
     .section-header {
         color: var(--cv-gold-light);
@@ -473,6 +566,18 @@ def get_logo_base64() -> str:
 
 logo_b64 = get_logo_base64()
 
+FAVICON_PATH = Path(__file__).parent / "image" / "Favicon.png"
+
+def get_favicon_base64() -> str:
+    """Load and encode the favicon as base64 for HTML embedding."""
+    if FAVICON_PATH.exists():
+        data = FAVICON_PATH.read_bytes()
+        return base64.b64encode(data).decode()
+    return ""
+
+favicon_b64 = get_favicon_base64()
+favicon_img = f'<img src="data:image/png;base64,{favicon_b64}" style="height:28px; width:28px; object-fit:contain;" alt="Icono">' if favicon_b64 else '<span class="material-symbols-rounded">local_pharmacy</span>'
+
 
 
 
@@ -488,58 +593,134 @@ if "data_loaded" not in st.session_state:
 
 
 # ---------------------------------------------------------------------------
-# Sidebar — Data Input
+# Sidebar — Data Input / Navigation
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown('<div class="sidebar-title"><span class="material-symbols-rounded">local_pharmacy</span> Carga de Datos</div>', unsafe_allow_html=True)
+    if not st.session_state.data_loaded:
+        st.markdown(f'<div class="sidebar-title">{favicon_img} Carga de Datos</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">Cargar Archivos</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="section-header">Cargar Archivos</div>', unsafe_allow_html=True)
+        st.markdown('''
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.2rem;">
+                <div style="color:white; font-size:0.85rem; display:flex; align-items:center; gap:0.4rem;">
+                    <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--cv-gold-light);">inventory_2</span> Movimientos de Inventario
+                </div>
+                <span class="material-symbols-rounded" style="color:white; font-size:1.0rem; opacity:0.9; cursor:help;" title="Columnas requeridas: fecha, codigo, nombre, bodega, tipo_movimiento, cantidad">help</span>
+            </div>
+        ''', unsafe_allow_html=True)
+        uploaded_movements = st.file_uploader(
+            "Movimientos",
+            type=["csv", "xlsx", "xls"],
+            help="Columnas requeridas: fecha, codigo, nombre, bodega, tipo_movimiento, cantidad",
+            key="upload_movements",
+            label_visibility="collapsed"
+        )
 
-    st.markdown('<div style="color:white; font-size:0.85rem; margin-bottom:0.2rem; display:flex; align-items:center; gap:0.4rem;"><span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--cv-gold-light);">inventory_2</span> Movimientos de Inventario</div>', unsafe_allow_html=True)
-    uploaded_movements = st.file_uploader(
-        "Movimientos",
-        type=["csv", "xlsx", "xls"],
-        help="Columnas requeridas: fecha, codigo, nombre, bodega, tipo_movimiento, cantidad",
-        key="upload_movements",
-        label_visibility="collapsed"
-    )
+        st.markdown('''
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem; margin-bottom:0.2rem;">
+                <div style="color:white; font-size:0.85rem; display:flex; align-items:center; gap:0.4rem;">
+                    <span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--cv-gold-light);">vaccines</span> Canastas (Comprometido)
+                </div>
+                <span class="material-symbols-rounded" style="color:white; font-size:1.0rem; opacity:0.9; cursor:help;" title="Columnas requeridas: codigo, nombre, cantidad_comprometida">help</span>
+            </div>
+        ''', unsafe_allow_html=True)
+        uploaded_kits = st.file_uploader(
+            "Canastas",
+            type=["csv", "xlsx", "xls"],
+            help="Columnas requeridas: codigo, nombre, cantidad_comprometida",
+            key="upload_kits",
+            label_visibility="collapsed"
+        )
 
-    st.markdown('<div style="color:white; font-size:0.85rem; margin-top:1rem; margin-bottom:0.2rem; display:flex; align-items:center; gap:0.4rem;"><span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--cv-gold-light);">vaccines</span> Canastas (Comprometido)</div>', unsafe_allow_html=True)
-    uploaded_kits = st.file_uploader(
-        "Canastas",
-        type=["csv", "xlsx", "xls"],
-        help="Columnas requeridas: codigo, nombre, cantidad_comprometida",
-        key="upload_kits",
-        label_visibility="collapsed"
-    )
-
-    if uploaded_movements is not None:
-        df_mov, err_mov = load_movements(uploaded_movements)
-        if err_mov:
-            st.error(f"{err_mov}")
-        else:
-            st.session_state.df_movements = df_mov
-            st.success(f"✓ {len(df_mov):,} movimientos")
-
-            if uploaded_kits is not None:
-                df_kits, err_kits = load_kits(uploaded_kits)
-                if err_kits:
-                    st.error(f"{err_kits}")
-                else:
-                    st.session_state.df_kits = df_kits
-                    st.session_state.data_loaded = True
-                    st.success(f"✓ {len(df_kits):,} canastas")
+        if uploaded_movements is not None:
+            df_mov, err_mov = load_movements(uploaded_movements)
+            if err_mov:
+                st.error(f"{err_mov}")
             else:
-                st.warning("⚠️ Falta cargar canastas")
+                st.session_state.df_movements = df_mov
+                st.toast(f"✓ {len(df_mov):,} movimientos", icon="📦")
 
-    st.markdown('<div class="section-header" style="margin-top: 2rem;">Explorar Demo</div>', unsafe_allow_html=True)
+                if uploaded_kits is not None:
+                    df_kits, err_kits = load_kits(uploaded_kits)
+                    if err_kits:
+                        st.error(f"{err_kits}")
+                    else:
+                        st.session_state.df_kits = df_kits
+                        st.session_state.data_loaded = True
+                        st.session_state.show_success_banner = True
+                        st.toast(f"✓ {len(df_kits):,} canastas", icon="💊")
+                else:
+                    st.warning("⚠️ Falta cargar canastas")
 
-    if st.button("🧪 Datos de Prueba", use_container_width=True, type="primary"):
-        with st.spinner("Generando datos..."):
-            st.session_state.df_movements = generate_demo_movements()
-            st.session_state.df_kits = generate_demo_kits(st.session_state.df_movements)
-            st.session_state.data_loaded = True
-            st.success(f"✓ Demo Cargada")
+        st.markdown('<div class="section-header" style="margin-top: 1.5rem;">Explorar Demo</div>', unsafe_allow_html=True)
+        
+        if st.button("Datos de Prueba", icon=":material/experiment:", use_container_width=True, type="primary"):
+            with st.spinner("Generando datos..."):
+                import time
+                time.sleep(1) # Simulate loading time
+                st.session_state.df_movements = generate_demo_movements()
+                st.session_state.df_kits = generate_demo_kits(st.session_state.df_movements)
+                st.session_state.data_loaded = True
+                st.session_state.show_success_banner = True
+                st.toast("Demo cargada", icon="✅")
+                st.rerun()
+                
+    else:
+        # Menú Principal State (Data is loaded)
+        st.markdown(f'<div class="sidebar-title">{favicon_img} Menú Principal</div>', unsafe_allow_html=True)
+        
+        st.markdown('''
+            <div style="margin-top: 2rem; margin-bottom: 0.5rem;">
+                <div style="color:var(--cv-steel-light); font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px;">Analytics</div>
+            </div>
+            <style>
+            /* Style the radio buttons to look like clean, outline menu items */
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+                padding: 0.8rem 1rem;
+                background: transparent;
+                border-radius: 8px;
+                margin-bottom: 0.2rem;
+                border-left: 3px solid transparent;
+                transition: all 0.2s ease-in-out;
+            }
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+                background: rgba(255,255,255,0.05);
+            }
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label[data-checked="true"] {
+                background: var(--cv-gold) !important;
+                border: none;
+            }
+            section[data-testid="stSidebar"] div[role="radiogroup"] p {
+                color: #FFFFFF !important;
+                font-size: 0.95rem;
+                font-weight: 500;
+            }
+            section[data-testid="stSidebar"] div[role="radiogroup"] > label[data-checked="true"] p {
+                color: var(--cv-navy-dark) !important;
+                font-weight: 700;
+            }
+            /* Override global light theme label colors in sidebar just in case */
+            section[data-testid="stSidebar"] {
+                color: #FFFFFF;
+            }
+            </style>
+        ''', unsafe_allow_html=True)
+
+        if 'dashboard_section' not in st.session_state:
+            st.session_state.dashboard_section = ":material/monitoring: Indicadores Clave"
+
+        st.session_state.dashboard_section = st.radio(
+            "Secciones",
+            options=[":material/monitoring: Indicadores Clave", ":material/bar_chart: Visualizaciones", ":material/table_view: Tabla de Detalle"],
+            label_visibility="collapsed"
+        )
+        
+        st.markdown('<div style="margin-top: 15rem;"></div>', unsafe_allow_html=True)
+        if st.button("← Volver al Inicio", help="Limpiar datos y regresar", use_container_width=True):
+            st.session_state.df_movements = None
+            st.session_state.df_kits = None
+            st.session_state.data_loaded = False
+            st.rerun()
 
 
 
@@ -561,43 +742,82 @@ if st.session_state.data_loaded and st.session_state.df_movements is not None an
             # Step 3: Reorder
             df_reorder = calculate_reorder(df_stock, df_consumption, st.session_state.df_kits)
 
+        # === Temporary Success Banner ===
+        if st.session_state.get('show_success_banner', False):
+            st.markdown('''
+            <style>
+            @keyframes slideOutTopRight {
+                0% { opacity: 0; transform: translateY(-20px); }
+                10% { opacity: 1; transform: translateY(0); }
+                85% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-20px); display: none; }
+            }
+            .floating-toast-white {
+                position: fixed;
+                top: 2rem;
+                right: 2rem;
+                background: #FFFFFF;
+                color: var(--cv-navy);
+                border-radius: 8px;
+                padding: 1rem 1.5rem;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                display: flex;
+                align-items: center;
+                gap: 0.8rem;
+                z-index: 9999999;
+                pointer-events: none; /* Crucial so it doesn't block clicks when invisible */
+                animation: slideOutTopRight 4s forwards ease-in-out;
+                border-left: 4px solid var(--success);
+            }
+            </style>
+            <div class="floating-toast-white">
+                <span class="material-symbols-rounded" style="color: var(--success); font-size: 1.5rem;">check_circle</span> 
+                <span style="font-size: 1rem; font-weight: 600;">Datos sincronizados</span>
+            </div>
+            ''', unsafe_allow_html=True)
+            st.session_state.show_success_banner = False
         # === Render Header + Dashboard ===
-        if logo_b64:
-            st.markdown(
-                f"""<div class="logo-header">
-                    <img src="data:image/png;base64,{logo_b64}" alt="Clínica Vida">
-                    <div>
-                        <div class="main-title" style="text-align:left;font-size:1.9rem;">Sistema de Reabastecimiento</div>
+        col_hdr1, col_hdr2 = st.columns([5, 1])
+        
+        with col_hdr1:
+            if logo_b64:
+                st.markdown(
+                    f"""
+                    <div style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 1.5rem; margin-top: -2.0rem; padding-left: 5rem;">
+                        <img src="data:image/png;base64,{logo_b64}" alt="Clínica Vida" style="height: 60px;">
+                        <div class="main-title" style="text-align: left; font-size: 2.2rem; margin: 0; line-height: 1;">Sistema de Reabastecimiento</div>
                     </div>
-                </div>""",
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown('<div class="main-title" style="margin-top: -2.0rem; text-align: center;">❖ Sistema de Reabastecimiento</div>', unsafe_allow_html=True)
+
+            st.markdown(
+                '<div class="main-subtitle" style="margin-top: 0.8rem; margin-bottom: 1rem;">Análisis de Inventario &bull; Bodegas 1185 &amp; 1188 &bull; Modelo Consignación</div>',
                 unsafe_allow_html=True,
             )
-        else:
-            st.markdown('<div class="main-title">❖ Sistema de Reabastecimiento</div>', unsafe_allow_html=True)
+            
+        with col_hdr2:
+            st.empty() # Arrow button removed from here as per user request (moved back to bottom sidebar)
+            
+        st.markdown('<div class="gold-bar" style="margin-top: -0.5rem;"></div>', unsafe_allow_html=True)
 
-        st.markdown(
-            '<div class="main-subtitle">Análisis de Inventario &bull; Bodegas 1185 &amp; 1188 &bull; Modelo Consignación</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown('<div class="gold-bar"></div>', unsafe_allow_html=True)
-
-        # KPIs
-        render_kpis(df_reorder)
-
-        st.markdown("---")
-
-        # Charts
-        render_charts(df_reorder)
-
-        st.markdown("---")
-
-        # Table
-        render_main_table(df_reorder)
-
-        # Export
-        excel_buffer = generate_excel_export(df_reorder)
-        filename = get_export_filename()
-        render_export_button(excel_buffer, filename)
+        # Content Router Based on Sidebar Selection
+        if st.session_state.dashboard_section == ":material/monitoring: Indicadores Clave":
+            render_kpis(df_reorder)
+            
+        elif st.session_state.dashboard_section == ":material/bar_chart: Visualizaciones":
+            render_charts(df_reorder)
+            
+        elif st.session_state.dashboard_section == ":material/table_view: Tabla de Detalle":
+            render_main_table(df_reorder)
+            
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            # Export
+            excel_buffer = generate_excel_export(df_reorder)
+            filename = get_export_filename()
+            render_export_button(excel_buffer, filename)
 
     except Exception as e:
         st.error(f"❌ Error en el procesamiento: {str(e)}")
@@ -605,23 +825,31 @@ if st.session_state.data_loaded and st.session_state.df_movements is not None an
 
 else:
     # Empty state
-    st.markdown("---")
     logo_img = (
         f'<img src="data:image/png;base64,{logo_b64}" '
-        f'style="height:140px;margin-bottom:1rem;" '
+        f'style="height:80px;margin-bottom:1rem;" '
         f'alt="Clínica Vida">'
     ) if logo_b64 else '<div style="font-size: 4rem; margin-bottom: 0.5rem;"><span class="material-symbols-rounded">local_pharmacy</span></div>'
-
     st.markdown(
         f"""
-        <div style="text-align: center; padding: 3rem 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(43,76,126,0.06); max-width: 850px; margin: -2rem auto 0 auto;">
+        <div style="text-align: center; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(43,76,126,0.06); max-width: 850px; margin: auto;">
             {logo_img}
             <h2 style="color: #2B4C7E; margin-bottom: 0.5rem; font-size: 2rem;">Bienvenido al Sistema de Reabastecimiento</h2>
             <p style="color: #556677; font-size: 1.1rem; line-height: 1.5; margin: 0;">
                 Cargue sus archivos de movimientos y canastas desde la barra lateral,
                 o genere datos de prueba para explorar el sistema.
             </p>
-        </div>
         """,
         unsafe_allow_html=True,
     )
+
+# ---------------------------------------------------------------------------
+# Global Footer
+# ---------------------------------------------------------------------------
+st.markdown("""
+<div class="global-footer-container" style="padding-bottom: 1rem; text-align: center;">
+    <div style="color: #94A3B8; font-size: 0.8rem; font-weight: 400; text-shadow: 0 1px 3px rgba(255,255,255,0.8);">
+        &copy; 2026 Nostra Sistema de Reabastecimiento. &bull; <span style="opacity: 0.8;"><b>Powered by Nostra</b> para Clínica Vida.</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
