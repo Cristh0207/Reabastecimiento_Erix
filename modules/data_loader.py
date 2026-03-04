@@ -4,7 +4,7 @@ data_loader.py — Carga y validación de archivos de entrada.
 Skills:
     - skill_data_validation: Validates required columns, types, and business rules.
 
-Supports CSV and Excel files for both movements and kits data.
+Supports CSV and Excel files for both movements and canastas data.
 """
 
 import pandas as pd
@@ -111,7 +111,7 @@ def load_movements(uploaded_file) -> Tuple[Optional[pd.DataFrame], Optional[str]
 
 def load_kits(uploaded_file) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
     """
-    Load and validate the kits (committed stock) file.
+    Load and validate the canastas (committed stock) file.
 
     Returns
     -------
@@ -124,7 +124,7 @@ def load_kits(uploaded_file) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
         # --- Validate required columns ---
         missing = KITS_REQUIRED_COLUMNS - set(df.columns)
         if missing:
-            return None, f"Columnas faltantes en kits: {', '.join(sorted(missing))}"
+            return None, f"Columnas faltantes en canastas: {', '.join(sorted(missing))}"
 
         # --- Type conversions ---
         df["codigo"] = df["codigo"].astype(str).str.strip()
@@ -148,4 +148,4 @@ def load_kits(uploaded_file) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
         return df, None
 
     except Exception as e:
-        return None, f"Error al cargar kits: {str(e)}"
+        return None, f"Error al cargar canastas: {str(e)}"

@@ -43,27 +43,27 @@ def render_kpis(df_reorder: pd.DataFrame) -> None:
         f"""
         <div class="kpi-grid">
             <div class="kpi-card">
-                <div class="kpi-label">📦 Total Productos</div>
+                <div class="kpi-label">❖ Total Productos</div>
                 <div class="kpi-value">{total_products:,}</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-label">🏭 Inventario Total</div>
+                <div class="kpi-label">⊞ Inventario Total</div>
                 <div class="kpi-value">{total_stock:,}</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-label">🔒 Comprometido Kits</div>
+                <div class="kpi-label">▪ Comprometido Canastas</div>
                 <div class="kpi-value">{total_committed:,}</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-label">✅ Stock Disponible</div>
+                <div class="kpi-label">■ Stock Disponible</div>
                 <div class="kpi-value">{total_available:,}</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-label">🚚 Total a Pedir</div>
+                <div class="kpi-label">▸ Total a Pedir</div>
                 <div class="kpi-value">{total_to_order:,}</div>
             </div>
             <div class="kpi-card kpi-risk">
-                <div class="kpi-label">⚠️ En Riesgo</div>
+                <div class="kpi-label">⟁ En Riesgo</div>
                 <div class="kpi-value">{risk_pct}%</div>
                 <div class="kpi-sub">({at_risk} de {total_products})</div>
             </div>
@@ -78,7 +78,7 @@ def render_kpis(df_reorder: pd.DataFrame) -> None:
 # ---------------------------------------------------------------------------
 def render_main_table(df_reorder: pd.DataFrame) -> None:
     """Render the full interactive data table."""
-    st.markdown("### 📋 Tabla de Análisis Completo")
+    st.markdown("### ▤ Tabla de Análisis Completo")
 
     display_cols = [
         "codigo",
@@ -124,7 +124,7 @@ def render_main_table(df_reorder: pd.DataFrame) -> None:
             key="risk_filter",
         )
     with col_filter2:
-        search = st.text_input("🔍 Buscar producto:", key="product_search")
+        search = st.text_input("⌕ Buscar producto:", key="product_search")
 
     if risk_filter != "Todos":
         df_display = df_display[df_display["Estado"] == risk_filter]
@@ -164,13 +164,13 @@ def render_charts(df_reorder: pd.DataFrame) -> None:
     color_warning = "#E8B931"
     color_success = "#16A34A"
 
-    st.markdown("### 📊 Visualizaciones")
+    st.markdown("### ◧ Visualizaciones")
 
     # --- Chart 1: Top 20 products to reorder ---
     tab1, tab2, tab3 = st.tabs([
-        "🔝 Top 20 a Pedir",
-        "📈 Distribución Cobertura",
-        "📊 Stock vs Proyección",
+        "▴ Top 20 a Pedir",
+        "◿ Distribución Cobertura",
+        "◧ Stock vs Proyección",
     ])
 
     with tab1:
@@ -210,7 +210,7 @@ def render_charts(df_reorder: pd.DataFrame) -> None:
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("✅ No hay productos que requieran reabastecimiento.")
+            st.info("■ No hay productos que requieran reabastecimiento.")
 
     with tab2:
         # Coverage distribution (cap at 60 for readability)
@@ -295,7 +295,7 @@ def render_export_button(excel_buffer: BytesIO, filename: str) -> None:
     col_exp1, col_exp2, col_exp3 = st.columns([1, 2, 1])
     with col_exp2:
         st.download_button(
-            label="📥 Exportar Pedido Sugerido (.xlsx)",
+            label="⤓ Exportar Pedido Sugerido (.xlsx)",
             data=excel_buffer,
             file_name=filename,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

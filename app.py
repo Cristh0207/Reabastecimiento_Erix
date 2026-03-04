@@ -233,20 +233,37 @@ st.markdown("""
     .stButton > button {
         background: var(--accent-gradient) !important;
         color: white !important;
-        border: none !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 10px !important;
         padding: 0.7rem 1.8rem !important;
         font-weight: 600 !important;
         font-size: 0.95rem !important;
         letter-spacing: 0.02em;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 4px 14px rgba(43, 76, 126, 0.25) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 4px 14px rgba(43, 76, 126, 0.2) !important;
+        position: relative;
+        overflow: hidden;
     }
 
     .stDownloadButton > button:hover,
     .stButton > button:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 6px 24px rgba(43, 76, 126, 0.35) !important;
+        box-shadow: 0 0 20px rgba(91, 141, 184, 0.6), 0 0 40px rgba(43, 76, 126, 0.4) !important;
+        border-color: var(--cv-steel-light) !important;
+    }
+    
+    /* ===== File Uploader ===== */
+    .stFileUploader > div > div {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px dashed rgba(255, 255, 255, 0.2) !important;
+        border-radius: 12px !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .stFileUploader > div > div:hover {
+        border-color: var(--cv-gold) !important;
+        box-shadow: 0 0 15px rgba(232, 185, 49, 0.3), inset 0 0 10px rgba(232, 185, 49, 0.1) !important;
+        background: rgba(255, 255, 255, 0.06) !important;
     }
 
     /* ===== Tabs ===== */
@@ -335,15 +352,6 @@ def get_logo_base64() -> str:
 logo_b64 = get_logo_base64()
 
 
-# ---------------------------------------------------------------------------
-# App Header
-# ---------------------------------------------------------------------------
-st.markdown('<div class="main-title">📦 Sistema de Reabastecimiento</div>', unsafe_allow_html=True)
-st.markdown(
-    '<div class="main-subtitle">Análisis de Inventario &bull; Bodegas 1185 &amp; 1188 &bull; Modelo Consignación</div>',
-    unsafe_allow_html=True,
-)
-st.markdown('<div class="gold-bar"></div>', unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
@@ -361,35 +369,29 @@ if "data_loaded" not in st.session_state:
 # Sidebar — Data Input
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    if logo_b64:
-        st.markdown(
-            f'<div class="sidebar-logo"><img src="data:image/png;base64,{logo_b64}" alt="Clínica Vida"></div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown("---")
-    st.markdown("## 📂 Carga de Datos")
+    st.markdown("## ⊞ Carga de Datos")
 
     st.markdown('<div class="section-header">Opción 1: Datos de Prueba</div>', unsafe_allow_html=True)
 
-    if st.button("🎲 Generar Datos de Prueba", use_container_width=True, type="primary"):
+    if st.button("✦ Generar Datos de Prueba", use_container_width=True, type="primary"):
         with st.spinner("Generando datos simulados..."):
             st.session_state.df_movements = generate_demo_movements()
             st.session_state.df_kits = generate_demo_kits(st.session_state.df_movements)
             st.session_state.data_loaded = True
-            st.success(f"✅ Generados {len(st.session_state.df_movements):,} movimientos y "
-                       f"{len(st.session_state.df_kits):,} productos en kits")
+            st.success(f"■ Generados {len(st.session_state.df_movements):,} movimientos y "
+                       f"{len(st.session_state.df_kits):,} productos en canastas")
 
     st.markdown('<div class="section-header">Opción 2: Cargar Archivos</div>', unsafe_allow_html=True)
 
     uploaded_movements = st.file_uploader(
-        "📄 Movimientos de Inventario",
+        "▪ Movimientos de Inventario",
         type=["csv", "xlsx", "xls"],
         help="Columnas: fecha, codigo, nombre, bodega, tipo_movimiento, cantidad",
         key="upload_movements",
     )
 
     uploaded_kits = st.file_uploader(
-        "📄 Kits (Stock Comprometido)",
+        "▪ Canastas (Stock Comprometido)",
         type=["csv", "xlsx", "xls"],
         help="Columnas: codigo, nombre, cantidad_comprometida",
         key="upload_kits",
@@ -398,31 +400,31 @@ with st.sidebar:
     if uploaded_movements is not None:
         df_mov, err_mov = load_movements(uploaded_movements)
         if err_mov:
-            st.error(f"❌ {err_mov}")
+            st.error(f"✕ {err_mov}")
         else:
             st.session_state.df_movements = df_mov
-            st.success(f"✅ {len(df_mov):,} movimientos cargados")
+            st.success(f"■ {len(df_mov):,} movimientos cargados")
 
             if uploaded_kits is not None:
                 df_kits, err_kits = load_kits(uploaded_kits)
                 if err_kits:
-                    st.error(f"❌ {err_kits}")
+                    st.error(f"✕ {err_kits}")
                 else:
                     st.session_state.df_kits = df_kits
                     st.session_state.data_loaded = True
-                    st.success(f"✅ {len(df_kits):,} productos en kits cargados")
+                    st.success(f"■ {len(df_kits):,} productos en canastas cargados")
             else:
-                st.warning("⚠️ Cargue el archivo de kits para calcular el pedido.")
+                st.warning("⟁ Cargue el archivo de canastas para calcular el pedido.")
 
     # Info
     st.markdown("---")
-    st.markdown("### ℹ️ Información")
+    st.markdown("### ℹ Información")
     st.markdown("""
     - **Consumo**: Últimos 90 días
     - **Cobertura**: 20 días
     - **Reabastecimiento**: Quincenal
     - **Bodegas**: 1185 + 1188
-    - **Kits**: Descuenta stock
+    - **Canastas**: Descuenta stock
     """)
 
 
@@ -432,7 +434,7 @@ with st.sidebar:
 if st.session_state.data_loaded and st.session_state.df_movements is not None and st.session_state.df_kits is not None:
     try:
         # === Computation Pipeline ===
-        with st.spinner("⚙️ Calculando análisis de inventario..."):
+        with st.spinner("⟳ Calculando análisis de inventario..."):
             # Step 1: Stock
             df_stock = calculate_stock(st.session_state.df_movements)
 
@@ -443,8 +445,25 @@ if st.session_state.data_loaded and st.session_state.df_movements is not None an
             # Step 3: Reorder
             df_reorder = calculate_reorder(df_stock, df_consumption, st.session_state.df_kits)
 
-        # === Render Dashboard ===
-        st.markdown("---")
+        # === Render Header + Dashboard ===
+        if logo_b64:
+            st.markdown(
+                f"""<div class="logo-header">
+                    <img src="data:image/png;base64,{logo_b64}" alt="Clínica Vida">
+                    <div>
+                        <div class="main-title" style="text-align:left;font-size:1.9rem;">Sistema de Reabastecimiento</div>
+                    </div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown('<div class="main-title">❖ Sistema de Reabastecimiento</div>', unsafe_allow_html=True)
+
+        st.markdown(
+            '<div class="main-subtitle">Análisis de Inventario &bull; Bodegas 1185 &amp; 1188 &bull; Modelo Consignación</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="gold-bar"></div>', unsafe_allow_html=True)
 
         # KPIs
         render_kpis(df_reorder)
@@ -469,5 +488,24 @@ if st.session_state.data_loaded and st.session_state.df_movements is not None an
         st.exception(e)
 
 else:
-    # Empty state — no content shown until data is loaded
-    pass
+    # Empty state
+    st.markdown("---")
+    logo_img = (
+        f'<img src="data:image/png;base64,{logo_b64}" '
+        f'style="height:80px;margin-bottom:1.5rem;" '
+        f'alt="Clínica Vida">'
+    ) if logo_b64 else '<div style="font-size: 4rem; margin-bottom: 1rem;">❖</div>'
+
+    st.markdown(
+        f"""
+        <div style="text-align: center; padding: 4rem 2rem; background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(43,76,126,0.08);">
+            {logo_img}
+            <h2 style="color: #2B4C7E; margin-bottom: 0.5rem;">Bienvenido al Sistema de Reabastecimiento</h2>
+            <p style="color: #556677; font-size: 1.05rem; max-width: 600px; margin: 0 auto;">
+                Cargue sus archivos de movimientos y canastas desde la barra lateral,
+                o genere datos de prueba para explorar el sistema.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
