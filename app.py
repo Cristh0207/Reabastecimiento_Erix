@@ -11,6 +11,7 @@ import streamlit as st
 import pandas as pd
 import base64
 from pathlib import Path
+from PIL import Image
 
 from modules.data_loader import load_movements, load_kits
 from modules.demo_generator import generate_demo_movements, generate_demo_kits
@@ -23,9 +24,10 @@ from modules.dashboard import render_kpis, render_main_table, render_charts, ren
 # ---------------------------------------------------------------------------
 # Page Configuration
 # ---------------------------------------------------------------------------
+favicon = Image.open(Path(__file__).parent / "image" / "Favicon.png")
 st.set_page_config(
     page_title="Sistema de Reabastecimiento",
-    page_icon="📦",
+    page_icon=favicon,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -36,8 +38,9 @@ st.set_page_config(
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
-    /* ===== Google Font ===== */
+    /* ===== Google Font & Material Icons ===== */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
     /* ===== Root Variables — Clínica Vida Brand ===== */
     :root {
@@ -75,26 +78,49 @@ st.markdown("""
     }
 
     .main .block-container {
-        padding-top: 1.5rem;
+        padding-top: 1rem;
         max-width: 1400px;
     }
 
     /* ===== Sidebar ===== */
     section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, var(--cv-navy-dark) 0%, var(--cv-navy) 100%);
+        background: var(--cv-navy-dark);
         border-right: none;
-        box-shadow: 4px 0 20px rgba(27, 58, 92, 0.15);
+        box-shadow: 2px 0 15px rgba(27, 58, 92, 0.15);
+    }
+
+    /* Ocultar barra de scroll en el sidebar y forzar inicio desde arriba */
+    section[data-testid="stSidebar"] > div {
+        overflow: hidden !important;
+    }
+    
+    [data-testid="stSidebarHeader"], 
+    [data-testid="stHeader"] {
+        display: none !important;
+        padding: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+    }
+
+    [data-testid="stSidebarUserContent"] {
+        padding-top: 1.5rem !important; /* Starts fully from the top */
+        padding-bottom: 0rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
     section[data-testid="stSidebar"] .stMarkdown h1,
     section[data-testid="stSidebar"] .stMarkdown h2,
     section[data-testid="stSidebar"] .stMarkdown h3 {
         color: #FFFFFF !important;
+        font-size: 1rem !important;
+        margin-bottom: 0.2rem !important;
     }
 
     section[data-testid="stSidebar"] .stMarkdown p,
     section[data-testid="stSidebar"] .stMarkdown li {
         color: var(--cv-steel-light) !important;
+        font-size: 0.85rem !important;
     }
 
     /* ===== Headers ===== */
@@ -107,6 +133,16 @@ st.markdown("""
         text-align: center;
         margin-bottom: 0.1rem;
         letter-spacing: -0.02em;
+    }
+    
+    .sidebar-title {
+        color: white;
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .main-subtitle {
@@ -252,18 +288,69 @@ st.markdown("""
         border-color: var(--cv-steel-light) !important;
     }
     
-    /* ===== File Uploader ===== */
-    .stFileUploader > div > div {
-        background: rgba(255, 255, 255, 0.03) !important;
-        border: 1px dashed rgba(255, 255, 255, 0.2) !important;
-        border-radius: 12px !important;
-        transition: all 0.3s ease !important;
+    /* ===== File Uploader (Supabase Inspired) ===== */
+    [data-testid="stFileUploader"] {
+        margin-bottom: -0.5rem;
+    }
+    
+    [data-testid="stFileUploader"] label {
+        color: rgba(255, 255, 255, 0.7) !important;
+        font-size: 0.72rem !important;
+        font-weight: 500 !important;
+        margin-bottom: 0.2rem !important;
     }
 
-    .stFileUploader > div > div:hover {
-        border-color: var(--cv-gold) !important;
-        box-shadow: 0 0 15px rgba(232, 185, 49, 0.3), inset 0 0 10px rgba(232, 185, 49, 0.1) !important;
-        background: rgba(255, 255, 255, 0.06) !important;
+    [data-testid="stFileUploaderDropzone"] {
+        background-color: rgba(255, 255, 255, 0.015) !important;
+        border: 1px dashed rgba(255, 255, 255, 0.15) !important;
+        border-radius: 6px !important;
+        padding: 0.6rem 0.5rem !important;
+        transition: all 0.2s ease !important;
+        min-height: auto !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    [data-testid="stFileUploaderDropzone"]:hover {
+        background-color: rgba(255, 255, 255, 0.04) !important;
+        border-color: var(--cv-steel-light) !important;
+        box-shadow: 0 0 10px rgba(91, 141, 184, 0.15) !important;
+    }
+
+    [data-testid="stFileUploaderDropzone"] svg {
+        display: block !important;
+        width: 25px !important;
+        height: 25px !important;
+        margin: 0 auto 5px auto !important;
+        color: var(--cv-steel-light) !important;
+    }
+    
+    [data-testid="stFileUploaderDropzoneInstructions"] > div:nth-child(2) {
+        display: none !important;
+    }
+    
+    [data-testid="stFileUploaderDropzoneInstructions"] > div:first-child {
+        color: rgba(255, 255, 255, 0.6) !important;
+        font-size: 0.75rem !important;
+        margin-top: 0 !important;
+    }
+
+    [data-testid="stFileUploaderDropzone"] button {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: rgba(255, 255, 255, 0.75) !important;
+        padding: 0 0.5rem !important;
+        min-height: 22px !important;
+        line-height: 1 !important;
+        font-size: 0.65rem !important;
+        border-radius: 4px !important;
+        font-weight: 400 !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button:hover {
+        background: rgba(255, 255, 255, 0.15) !important;
+        color: white !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
     }
 
     /* ===== Tabs ===== */
@@ -369,63 +456,55 @@ if "data_loaded" not in st.session_state:
 # Sidebar — Data Input
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("## ⊞ Carga de Datos")
+    st.markdown('<div class="sidebar-title"><span class="material-symbols-rounded">local_pharmacy</span> Carga de Datos</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="section-header">Opción 1: Datos de Prueba</div>', unsafe_allow_html=True)
-
-    if st.button("✦ Generar Datos de Prueba", use_container_width=True, type="primary"):
-        with st.spinner("Generando datos simulados..."):
-            st.session_state.df_movements = generate_demo_movements()
-            st.session_state.df_kits = generate_demo_kits(st.session_state.df_movements)
-            st.session_state.data_loaded = True
-            st.success(f"■ Generados {len(st.session_state.df_movements):,} movimientos y "
-                       f"{len(st.session_state.df_kits):,} productos en canastas")
-
-    st.markdown('<div class="section-header">Opción 2: Cargar Archivos</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">Cargar Archivos</div>', unsafe_allow_html=True)
 
     uploaded_movements = st.file_uploader(
-        "▪ Movimientos de Inventario",
+        "📦 Movimientos de Inventario",
         type=["csv", "xlsx", "xls"],
         help="Columnas: fecha, codigo, nombre, bodega, tipo_movimiento, cantidad",
         key="upload_movements",
     )
+    st.markdown('<div style="font-size:0.65rem; color:rgba(255,255,255,0.5); margin-top:-1.2rem; margin-bottom:1rem; padding-left:0.2rem;">Límite: 200MB • CSV, Excel</div>', unsafe_allow_html=True)
 
     uploaded_kits = st.file_uploader(
-        "▪ Canastas (Stock Comprometido)",
+        "💊 Canastas (Comprometido)",
         type=["csv", "xlsx", "xls"],
         help="Columnas: codigo, nombre, cantidad_comprometida",
         key="upload_kits",
     )
+    st.markdown('<div style="font-size:0.65rem; color:rgba(255,255,255,0.5); margin-top:-1.2rem; margin-bottom:1rem; padding-left:0.2rem;">Límite: 200MB • CSV, Excel</div>', unsafe_allow_html=True)
 
     if uploaded_movements is not None:
         df_mov, err_mov = load_movements(uploaded_movements)
         if err_mov:
-            st.error(f"✕ {err_mov}")
+            st.error(f"{err_mov}")
         else:
             st.session_state.df_movements = df_mov
-            st.success(f"■ {len(df_mov):,} movimientos cargados")
+            st.success(f"✓ {len(df_mov):,} movimientos")
 
             if uploaded_kits is not None:
                 df_kits, err_kits = load_kits(uploaded_kits)
                 if err_kits:
-                    st.error(f"✕ {err_kits}")
+                    st.error(f"{err_kits}")
                 else:
                     st.session_state.df_kits = df_kits
                     st.session_state.data_loaded = True
-                    st.success(f"■ {len(df_kits):,} productos en canastas cargados")
+                    st.success(f"✓ {len(df_kits):,} canastas")
             else:
-                st.warning("⟁ Cargue el archivo de canastas para calcular el pedido.")
+                st.warning("⚠️ Falta cargar canastas")
 
-    # Info
-    st.markdown("---")
-    st.markdown("### ℹ Información")
-    st.markdown("""
-    - **Consumo**: Últimos 90 días
-    - **Cobertura**: 20 días
-    - **Reabastecimiento**: Quincenal
-    - **Bodegas**: 1185 + 1188
-    - **Canastas**: Descuenta stock
-    """)
+    st.markdown('<div class="section-header" style="margin-top: 2rem;">Explorar Demo</div>', unsafe_allow_html=True)
+
+    if st.button("🧪 Datos de Prueba", use_container_width=True, type="primary"):
+        with st.spinner("Generando datos..."):
+            st.session_state.df_movements = generate_demo_movements()
+            st.session_state.df_kits = generate_demo_kits(st.session_state.df_movements)
+            st.session_state.data_loaded = True
+            st.success(f"✓ Demo Cargada")
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -492,16 +571,16 @@ else:
     st.markdown("---")
     logo_img = (
         f'<img src="data:image/png;base64,{logo_b64}" '
-        f'style="height:80px;margin-bottom:1.5rem;" '
+        f'style="height:120px;margin-bottom:1rem;" '
         f'alt="Clínica Vida">'
-    ) if logo_b64 else '<div style="font-size: 4rem; margin-bottom: 1rem;">❖</div>'
+    ) if logo_b64 else '<div style="font-size: 4rem; margin-bottom: 0.5rem;"><span class="material-symbols-rounded">local_pharmacy</span></div>'
 
     st.markdown(
         f"""
-        <div style="text-align: center; padding: 4rem 2rem; background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(43,76,126,0.08);">
+        <div style="text-align: center; padding: 2rem 1.5rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(43,76,126,0.06); max-width: 600px; margin: 0 auto;">
             {logo_img}
-            <h2 style="color: #2B4C7E; margin-bottom: 0.5rem;">Bienvenido al Sistema de Reabastecimiento</h2>
-            <p style="color: #556677; font-size: 1.05rem; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2B4C7E; margin-bottom: 0.5rem; font-size: 1.8rem;">Bienvenido al Sistema de Reabastecimiento</h2>
+            <p style="color: #556677; font-size: 1rem; line-height: 1.5; margin: 0;">
                 Cargue sus archivos de movimientos y canastas desde la barra lateral,
                 o genere datos de prueba para explorar el sistema.
             </p>
