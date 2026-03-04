@@ -133,6 +133,11 @@ st.markdown("""
         text-align: center;
         margin-bottom: 0.1rem;
         letter-spacing: -0.02em;
+        transition: all 0.3s ease;
+    }
+    
+    h1:hover, h2:hover, h3:hover, .main-title:hover {
+        text-shadow: 0 0 15px rgba(226, 179, 93, 0.4);
     }
     
     .sidebar-title {
@@ -263,6 +268,25 @@ st.markdown("""
         overflow: hidden;
         box-shadow: var(--shadow-card);
     }
+    
+    /* ===== Hover Glows ===== */
+    .kpi-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .kpi-card:hover {
+        transform: translateY(-5px) !important;
+        box-shadow: 0 8px 30px rgba(226, 179, 93, 0.3), 0 0 15px rgba(226, 179, 93, 0.2) !important;
+        border-color: var(--cv-gold-light) !important;
+    }
+    .kpi-card:hover .material-symbols-rounded {
+        text-shadow: 0 0 10px rgba(226, 179, 93, 0.6);
+        color: var(--cv-gold-light);
+    }
+    
+    [data-testid="stTooltipIcon"] svg {
+        color: white !important;
+        opacity: 0.9 !important;
+    }
 
     /* ===== Buttons ===== */
     .stDownloadButton > button,
@@ -332,8 +356,19 @@ st.markdown("""
     
     [data-testid="stFileUploaderDropzoneInstructions"] > div:first-child {
         color: rgba(255, 255, 255, 0.6) !important;
-        font-size: 0.75rem !important;
+        font-size: 0.70rem !important;
         margin-top: 0 !important;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+    }
+    
+    [data-testid="stFileUploaderDropzoneInstructions"] > div:first-child::after {
+        content: "Límite: 200MB • CSV / Excel";
+        font-size: 0.6rem;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 2px;
     }
 
     [data-testid="stFileUploaderDropzone"] button {
@@ -460,21 +495,23 @@ with st.sidebar:
 
     st.markdown('<div class="section-header">Cargar Archivos</div>', unsafe_allow_html=True)
 
+    st.markdown('<div style="color:white; font-size:0.85rem; margin-bottom:0.2rem; display:flex; align-items:center; gap:0.4rem;"><span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--cv-gold-light);">inventory_2</span> Movimientos de Inventario</div>', unsafe_allow_html=True)
     uploaded_movements = st.file_uploader(
-        "📦 Movimientos de Inventario",
+        "Movimientos",
         type=["csv", "xlsx", "xls"],
-        help="Columnas: fecha, codigo, nombre, bodega, tipo_movimiento, cantidad",
+        help="Columnas requeridas: fecha, codigo, nombre, bodega, tipo_movimiento, cantidad",
         key="upload_movements",
+        label_visibility="collapsed"
     )
-    st.markdown('<div style="font-size:0.65rem; color:rgba(255,255,255,0.5); margin-top:-1.2rem; margin-bottom:1rem; padding-left:0.2rem;">Límite: 200MB • CSV, Excel</div>', unsafe_allow_html=True)
 
+    st.markdown('<div style="color:white; font-size:0.85rem; margin-top:1rem; margin-bottom:0.2rem; display:flex; align-items:center; gap:0.4rem;"><span class="material-symbols-rounded" style="font-size:1.1rem; color:var(--cv-gold-light);">vaccines</span> Canastas (Comprometido)</div>', unsafe_allow_html=True)
     uploaded_kits = st.file_uploader(
-        "💊 Canastas (Comprometido)",
+        "Canastas",
         type=["csv", "xlsx", "xls"],
-        help="Columnas: codigo, nombre, cantidad_comprometida",
+        help="Columnas requeridas: codigo, nombre, cantidad_comprometida",
         key="upload_kits",
+        label_visibility="collapsed"
     )
-    st.markdown('<div style="font-size:0.65rem; color:rgba(255,255,255,0.5); margin-top:-1.2rem; margin-bottom:1rem; padding-left:0.2rem;">Límite: 200MB • CSV, Excel</div>', unsafe_allow_html=True)
 
     if uploaded_movements is not None:
         df_mov, err_mov = load_movements(uploaded_movements)
@@ -571,16 +608,16 @@ else:
     st.markdown("---")
     logo_img = (
         f'<img src="data:image/png;base64,{logo_b64}" '
-        f'style="height:120px;margin-bottom:1rem;" '
+        f'style="height:140px;margin-bottom:1rem;" '
         f'alt="Clínica Vida">'
     ) if logo_b64 else '<div style="font-size: 4rem; margin-bottom: 0.5rem;"><span class="material-symbols-rounded">local_pharmacy</span></div>'
 
     st.markdown(
         f"""
-        <div style="text-align: center; padding: 2rem 1.5rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(43,76,126,0.06); max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; padding: 3rem 2rem; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(43,76,126,0.06); max-width: 850px; margin: -2rem auto 0 auto;">
             {logo_img}
-            <h2 style="color: #2B4C7E; margin-bottom: 0.5rem; font-size: 1.8rem;">Bienvenido al Sistema de Reabastecimiento</h2>
-            <p style="color: #556677; font-size: 1rem; line-height: 1.5; margin: 0;">
+            <h2 style="color: #2B4C7E; margin-bottom: 0.5rem; font-size: 2rem;">Bienvenido al Sistema de Reabastecimiento</h2>
+            <p style="color: #556677; font-size: 1.1rem; line-height: 1.5; margin: 0;">
                 Cargue sus archivos de movimientos y canastas desde la barra lateral,
                 o genere datos de prueba para explorar el sistema.
             </p>
