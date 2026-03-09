@@ -3,8 +3,14 @@ import './index.css'
 import Sidebar from './components/Sidebar'
 import WelcomeCard from './components/WelcomeCard'
 import Dashboard from './components/Dashboard'
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+import {
+  parseCanastas,
+  parseInventarioMensual,
+  parseConsumoHistorico,
+  processRealPipeline,
+  generateDemoData,
+  exportToExcel,
+} from './services/dataService'
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -21,37 +27,21 @@ function App() {
   // Días de proyección
   const [diasProyeccion, setDiasProyeccion] = useState(20)
 
-  /* ---------- Upload & Process (3 archivos reales) ---------- */
+  /* ---------- Procesar 3 archivos reales (client-side) ---------- */
   const handleProcess = async () => {
     if (!invFile || !kitFile || !consumoFile) return
     setLoading(true)
     setError(null)
     try {
-      // 1. Upload inventario mensual
-      const formInv = new FormData()
-      formInv.append('file', invFile)
-      const resInv = await fetch(`${API_BASE}/api/upload/inventario`, { method: 'POST', body: formInv })
-      if (!resInv.ok) throw new Error((await resInv.json()).detail)
+      // 1. Parsear los 3 archivos Excel en el navegador
+      const [inventario, canastas, consumo] = await Promise.all([
+        parseInventarioMensual(invFile),
+        parseCanastas(kitFile),
+        parseConsumoHistorico(consumoFile),
+      ])
 
-      // 2. Upload canastas
-      const formKit = new FormData()
-      formKit.append('file', kitFile)
-      const resKit = await fetch(`${API_BASE}/api/upload/canastas`, { method: 'POST', body: formKit })
-      if (!resKit.ok) throw new Error((await resKit.json()).detail)
-
-      // 3. Upload consumo histórico
-      const formCon = new FormData()
-      formCon.append('file', consumoFile)
-      const resCon = await fetch(`${API_BASE}/api/upload/consumo`, { method: 'POST', body: formCon })
-      if (!resCon.ok) throw new Error((await resCon.json()).detail)
-
-      // 4. Process con días de proyección
-      const resProc = await fetch(
-        `${API_BASE}/api/process?dias_proyeccion=${diasProyeccion}`,
-        { method: 'POST' }
-      )
-      if (!resProc.ok) throw new Error((await resProc.json()).detail)
-      const result = await resProc.json()
+      // 2. Ejecutar pipeline de procesamiento
+      const result = processRealPipeline(inventario, canastas, consumo, diasProyeccion)
       setData(result)
     } catch (e) {
       setError(e.message)
@@ -61,13 +51,11 @@ function App() {
   }
 
   /* ---------- Demo ---------- */
-  const handleDemo = async () => {
+  const handleDemo = () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${API_BASE}/api/demo`)
-      if (!res.ok) throw new Error('Error generando datos demo')
-      const result = await res.json()
+      const result = generateDemoData()
       setData(result)
     } catch (e) {
       setError(e.message)
@@ -77,16 +65,9 @@ function App() {
   }
 
   /* ---------- Export ---------- */
-  const handleExport = async () => {
-    const res = await fetch(`${API_BASE}/api/export`)
-    const blob = await res.blob()
-    const url = window.URL.createObjectURL(blob)
-    const today = new Date().toISOString().split('T')[0]
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `pedido_reabastecimiento_${today}.xlsx`
-    a.click()
-    window.URL.revokeObjectURL(url)
+  const handleExport = () => {
+    if (!data || !data.reorder) return
+    exportToExcel(data.reorder)
   }
 
   return (
