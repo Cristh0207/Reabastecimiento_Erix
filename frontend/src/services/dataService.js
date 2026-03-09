@@ -253,7 +253,7 @@ export async function parseInventarioMensual(file) {
 export async function parseConsumoHistorico(file, diasPeriodo = 90) {
     const { rows, headers } = await _readExcel(file)
 
-    // Columnas reales: C=bodega(2), G=codigo(6), K=cantidad(10), L=nombre(11), P=concepto(15)
+    // Columnas reales: C=bodega(2), G=codigo(6), K=cantidad(10), L=nombre(11), O=fecha(14), P=concepto(15)
     const colBodega = _findColumn(headers, [
         'servicio', 'Servicio', 'SERVICIO',
         'bodega', 'Bodega', 'BODEGA', 'almacen', 'Almacen', 'ALMACEN',
@@ -261,7 +261,7 @@ export async function parseConsumoHistorico(file, diasPeriodo = 90) {
     ], 2)
 
     const colCodigo = _findColumn(headers, [
-        'codigo', 'Codigo', 'CODIGO', 'Código', 'cod_articulo',
+        'codigo', 'Codigo', 'CODIGO', 'Codigo', 'cod_articulo',
         'Cod Articulo', 'cod articulo', 'CodArticulo',
         'codigo del articulo', 'Codigo del articulo',
     ], 6)
@@ -273,27 +273,38 @@ export async function parseConsumoHistorico(file, diasPeriodo = 90) {
     const colNombre = _findColumn(headers, [
         'Nombre articulo', 'nombre articulo', 'Nombre Articulo', 'NOMBRE ARTICULO',
         'nombre', 'Nombre', 'NOMBRE',
-        'descripcion', 'Descripcion', 'DESCRIPCION', 'Descripción',
+        'descripcion', 'Descripcion', 'DESCRIPCION',
         'Articulo', 'articulo',
         'nom_articulo', 'Nom Articulo',
         'art nom', 'Art Nom', 'Artnom',
     ], 11)
+
+    const colFecha = _findColumn(headers, [
+        'fecha', 'Fecha', 'FECHA', 'Fecha Factura', 'fecha_factura',
+        'Fecha factura', 'FechaFactura', 'fecha factura',
+    ], 14)
 
     const colConcepto = _findColumn(headers, [
         'concepto', 'Concepto', 'CONCEPTO', 'Cod Concepto', 'cod_concepto',
     ], 15)
 
     if (!colCodigo) {
-        throw new Error(`No se encontró columna de código en Consumo. Encabezados: ${headers.join(', ')}`)
+        throw new Error(`No se encontro columna de codigo en Consumo. Encabezados: ${headers.join(', ')}`)
     }
 
-    // Conceptos válidos: 104 (cargo a paciente) y 105 (consumo interno)
+    // Mes y anio actuales para filtrar mes corriente
+    const hoy = new Date()
+    const mesActual = hoy.getMonth()  // 0-based
+    const anioActual = hoy.getFullYear()
+
+    // Conceptos validos: 104 (cargo a paciente) y 105 (consumo interno)
     const CONCEPTOS_VALIDOS = new Set(['104', '105'])
 
-    // Agrupar por código, separando consumo por concepto
+    // Agrupar por codigo, separando: totales 3M vs mes corriente
     const groups = {}
     let totalFilas = 0
     let filasConcepto = 0
+    let filasMesCorriente = 0
 
     rows.forEach(row => {
         totalFilas++
@@ -319,12 +330,47 @@ export async function parseConsumoHistorico(file, diasPeriodo = 90) {
         const nombre = colNombre ? String(row[colNombre] || '').trim() : codigo
         const concepto = colConcepto ? String(row[colConcepto] || '').trim() : '104'
 
-        if (!groups[codigo]) {
-            groups[codigo] = { codigo, nombre, total_consumo: 0, consumo_104: 0, consumo_105: 0 }
+        // Detectar si la fila es del mes corriente
+        let esMesCorriente = false
+        if (colFecha) {
+            const rawFecha = row[colFecha]
+            let fecha = null
+            // xlsx puede devolver la fecha como numero serial de Excel o como string
+            if (typeof rawFecha === 'number') {
+                // Numero serial de Excel (dias desde 1899-12-30)
+                fecha = new Date((rawFecha - 25569) * 86400 * 1000)
+            } else if (rawFecha) {
+                fecha = new Date(String(rawFecha))
+            }
+            if (fecha && !isNaN(fecha.getTime())) {
+                esMesCorriente = (fecha.getMonth() === mesActual && fecha.getFullYear() === anioActual)
+            }
         }
+
+        if (esMesCorriente) filasMesCorriente++
+
+        if (!groups[codigo]) {
+            groups[codigo] = {
+                codigo, nombre,
+                // Totales 3 meses (para proyeccion)
+                total_consumo: 0, consumo_104: 0, consumo_105: 0,
+                // Totales mes corriente (para KPIs y ajuste stock)
+                consumo_104_mes: 0, consumo_105_mes: 0, total_consumo_mes: 0,
+            }
+        }
+
+        // Acumular totales 3 meses
         groups[codigo].total_consumo += cantidad
         if (concepto === '104') groups[codigo].consumo_104 += cantidad
         if (concepto === '105') groups[codigo].consumo_105 += cantidad
+
+        // Acumular mes corriente
+        if (esMesCorriente) {
+            groups[codigo].total_consumo_mes += cantidad
+            if (concepto === '104') groups[codigo].consumo_104_mes += cantidad
+            if (concepto === '105') groups[codigo].consumo_105_mes += cantidad
+        }
+
         if (nombre && nombre !== codigo) groups[codigo].nombre = nombre
     })
 
@@ -333,14 +379,20 @@ export async function parseConsumoHistorico(file, diasPeriodo = 90) {
         total_consumo: Math.round(r.total_consumo),
         consumo_104: Math.round(r.consumo_104),
         consumo_105: Math.round(r.consumo_105),
+        consumo_104_mes: Math.round(r.consumo_104_mes),
+        consumo_105_mes: Math.round(r.consumo_105_mes),
+        total_consumo_mes: Math.round(r.total_consumo_mes),
+        // Promedio diario usa los 3 MESES para proyeccion robusta
         consumo_promedio_diario: Math.round((r.total_consumo / Math.max(diasPeriodo, 1)) * 100) / 100,
-        consumo_105_diario: Math.round((r.consumo_105 / Math.max(diasPeriodo, 1)) * 100) / 100,
     })).sort((a, b) => a.codigo.localeCompare(b.codigo))
 
     const total104 = result.reduce((s, r) => s + r.consumo_104, 0)
     const total105 = result.reduce((s, r) => s + r.consumo_105, 0)
-    console.log(`[CONSUMO] Filas totales: ${totalFilas}, Filas concepto 104/105: ${filasConcepto}`)
-    console.log(`[CONSUMO] Productos: ${result.length}, Consumo Paciente(104): ${total104}, Consumo Interno(105): ${total105}`)
+    const total104Mes = result.reduce((s, r) => s + r.consumo_104_mes, 0)
+    const total105Mes = result.reduce((s, r) => s + r.consumo_105_mes, 0)
+    console.log(`[CONSUMO] Filas totales: ${totalFilas}, Filas concepto 104/105: ${filasConcepto}, Filas mes corriente: ${filasMesCorriente}`)
+    console.log(`[CONSUMO] 3 Meses -> Paciente(104): ${total104}, Interno(105): ${total105}`)
+    console.log(`[CONSUMO] Mes Corriente -> Paciente(104): ${total104Mes}, Interno(105): ${total105Mes}`)
 
     return result
 }
@@ -349,10 +401,6 @@ export async function parseConsumoHistorico(file, diasPeriodo = 90) {
 // Pipeline completo con datos reales
 // ---------------------------------------------------------------------------
 export function processRealPipeline(inventario, canastas, consumo, diasProyeccion = 20) {
-    // Días transcurridos del mes actual (para estimar consumo interno 105)
-    const hoy = new Date()
-    const diasDelMes = hoy.getDate()
-
     // 1. Base: inventario mensual
     const codigoMap = {}
     inventario.forEach(r => {
@@ -366,9 +414,8 @@ export function processRealPipeline(inventario, canastas, consumo, diasProyeccio
             cantidad_comprometida: 0,
             total_consumo: 0,
             consumo_promedio_diario: 0,
-            consumo_104: 0,
-            consumo_105: 0,
-            ajuste_consumo_interno: 0,
+            consumo_104_mes: 0,
+            consumo_105_mes: 0,
         }
     })
 
@@ -393,34 +440,34 @@ export function processRealPipeline(inventario, canastas, consumo, diasProyeccio
         })
     }
 
-    // 2. Merge canastas (comprometido)
+    // 2. Merge canastas (comprometido - VA COMPLETO, no disponible para pedido)
     Object.keys(codigoMap).forEach(codigo => {
         if (canastasMap[codigo]) {
             codigoMap[codigo].cantidad_comprometida = canastasMap[codigo].cantidad_comprometida
         }
     })
 
-    // 3. Merge consumo (con detalle 104/105)
+    // 3. Merge consumo (3M para proyeccion + mes corriente para ajuste real)
     Object.keys(codigoMap).forEach(codigo => {
         if (consumoMap[codigo]) {
             codigoMap[codigo].total_consumo = consumoMap[codigo].total_consumo
+            // Promedio diario usa 3 MESES para proyeccion robusta
             codigoMap[codigo].consumo_promedio_diario = consumoMap[codigo].consumo_promedio_diario
-            codigoMap[codigo].consumo_104 = consumoMap[codigo].consumo_104 || 0
-            codigoMap[codigo].consumo_105 = consumoMap[codigo].consumo_105 || 0
-
-            // Ajuste: consumo interno (105) NO está reflejado en las salidas del inventario
-            // Estimamos el consumo interno del mes corriente usando el promedio diario de 105
-            const consumo105Diario = consumoMap[codigo].consumo_105_diario || 0
-            codigoMap[codigo].ajuste_consumo_interno = Math.round(consumo105Diario * diasDelMes)
+            // Consumo REAL del mes corriente (datos reales, no estimaciones)
+            codigoMap[codigo].consumo_104_mes = consumoMap[codigo].consumo_104_mes || 0
+            codigoMap[codigo].consumo_105_mes = consumoMap[codigo].consumo_105_mes || 0
         }
     })
 
-    // 4. Cálculos centrales
+    // 4. Calculos centrales
     const df = Object.values(codigoMap).map(r => {
-        // Stock real = saldo_actual - consumo interno estimado del mes (no reflejado en salidas)
-        const stock_real = Math.max(0, r.stock_actual - r.ajuste_consumo_interno)
-        // Disponible = stock real - comprometido en canastas
+        // El inventario YA refleja salidas de concepto 104
+        // Pero NO refleja salidas de concepto 105 (consumo interno)
+        // Restamos el consumo interno REAL del mes corriente
+        const stock_real = Math.max(0, r.stock_actual - r.consumo_105_mes)
+        // Disponible = stock real - comprometido en canastas (canastas NO es disponible)
         const stock_disponible = Math.max(0, stock_real - r.cantidad_comprometida)
+        // Proyeccion usa promedio diario de 3 MESES (104 + 105)
         const proyeccion_dias = Math.round(r.consumo_promedio_diario * diasProyeccion)
         const cobertura_dias = r.consumo_promedio_diario > 0
             ? Math.round((stock_disponible / r.consumo_promedio_diario) * 10) / 10
@@ -446,27 +493,27 @@ export function processRealPipeline(inventario, canastas, consumo, diasProyeccio
     const totalProducts = df.length
     const totalStock = df.reduce((s, r) => s + r.stock_actual, 0)
     const totalCommitted = canastas ? canastas.reduce((s, r) => s + r.cantidad_comprometida, 0) : 0
-    const totalAjusteInterno = df.reduce((s, r) => s + r.ajuste_consumo_interno, 0)
+    const totalConsumo105Mes = df.reduce((s, r) => s + r.consumo_105_mes, 0)
     const totalAvailable = df.reduce((s, r) => s + r.stock_disponible, 0)
     const totalToOrder = df.reduce((s, r) => s + r.cantidad_a_pedir, 0)
     const riskProducts = df.filter(r => r.estado_riesgo === 'Reabastecer').length
     const riskPct = Math.round((riskProducts / Math.max(totalProducts, 1)) * 1000) / 10
-    const consumoPacienteTotal = consumo ? consumo.reduce((s, r) => s + (r.consumo_104 || 0), 0) : 0
-    const consumoInternoTotal = consumo ? consumo.reduce((s, r) => s + (r.consumo_105 || 0), 0) : 0
+    // KPIs de consumo del MES CORRIENTE (dato real, no 3 meses)
+    const consumoPacienteMes = consumo ? consumo.reduce((s, r) => s + (r.consumo_104_mes || 0), 0) : 0
+    const consumoInternoMes = consumo ? consumo.reduce((s, r) => s + (r.consumo_105_mes || 0), 0) : 0
 
     return {
         kpis: {
             total_products: totalProducts,
             total_stock: totalStock,
             total_committed: totalCommitted,
-            total_ajuste_interno: totalAjusteInterno,
+            consumo_interno_mes: totalConsumo105Mes,
             total_available: totalAvailable,
             total_to_order: totalToOrder,
             risk_products: riskProducts,
             risk_pct: riskPct,
-            consumo_paciente_total: consumoPacienteTotal,
-            consumo_interno_total: consumoInternoTotal,
-            dias_mes_corriente: diasDelMes,
+            consumo_paciente_mes: consumoPacienteMes,
+            consumo_interno_total_mes: consumoInternoMes,
         },
         reorder: df,
         consumption: consumo || [],

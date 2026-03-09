@@ -6,8 +6,8 @@ export default function KpiCards({ kpis }) {
         { label: 'Stock Disponible', value: kpis.total_available.toLocaleString(), icon: 'check_circle' },
         { label: 'Unidades a Pedir', value: kpis.total_to_order.toLocaleString(), icon: 'shopping_cart' },
         { label: 'Productos en Riesgo', value: `${kpis.risk_pct}%`, icon: 'warning', isRisk: true },
-        { label: 'Consumo Paciente (3M)', value: (kpis.consumo_paciente_total || 0).toLocaleString(), icon: 'personal_injury' },
-        { label: 'Consumo Interno (3M)', value: (kpis.consumo_interno_total || 0).toLocaleString(), icon: 'local_hospital' },
+        { label: 'Consumo Paciente (Mes)', value: (kpis.consumo_paciente_mes || 0).toLocaleString(), icon: 'personal_injury' },
+        { label: 'Consumo Interno (Mes)', value: (kpis.consumo_interno_total_mes || 0).toLocaleString(), icon: 'local_hospital' },
     ]
 
     return (
