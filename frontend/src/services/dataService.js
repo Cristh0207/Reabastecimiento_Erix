@@ -420,12 +420,23 @@ export function processRealPipeline(inventario, canastas, consumo, diasProyeccio
     })
 
     // 1b. Enriquecer nombre si inventario no lo tiene
+    // Y agregar productos de canastas/consumo que NO estan en inventario (stock 0)
     const canastasMap = {}
     if (canastas && canastas.length > 0) {
         canastas.forEach(r => {
             canastasMap[r.codigo] = r
-            if (codigoMap[r.codigo] && codigoMap[r.codigo].nombre === r.codigo && r.nombre && r.nombre !== r.codigo) {
-                codigoMap[r.codigo].nombre = r.nombre
+            if (codigoMap[r.codigo]) {
+                if (codigoMap[r.codigo].nombre === r.codigo && r.nombre && r.nombre !== r.codigo) {
+                    codigoMap[r.codigo].nombre = r.nombre
+                }
+            } else {
+                // Producto en canastas pero NO en inventario: agregar con stock 0
+                codigoMap[r.codigo] = {
+                    codigo: r.codigo, nombre: r.nombre || r.codigo,
+                    saldo_inicial: 0, entradas: 0, salidas: 0, stock_actual: 0,
+                    cantidad_comprometida: 0, total_consumo: 0, consumo_promedio_diario: 0,
+                    consumo_104_mes: 0, consumo_105_mes: 0,
+                }
             }
         })
     }
@@ -434,8 +445,19 @@ export function processRealPipeline(inventario, canastas, consumo, diasProyeccio
     if (consumo && consumo.length > 0) {
         consumo.forEach(r => {
             consumoMap[r.codigo] = r
-            if (codigoMap[r.codigo] && codigoMap[r.codigo].nombre === r.codigo && r.nombre && r.nombre !== r.codigo) {
-                codigoMap[r.codigo].nombre = r.nombre
+            if (codigoMap[r.codigo]) {
+                if (codigoMap[r.codigo].nombre === r.codigo && r.nombre && r.nombre !== r.codigo) {
+                    codigoMap[r.codigo].nombre = r.nombre
+                }
+            } else {
+                // Producto en consumo pero NO en inventario: agregar con stock 0
+                // Necesita pedido porque se consume pero no hay en bodega
+                codigoMap[r.codigo] = {
+                    codigo: r.codigo, nombre: r.nombre || r.codigo,
+                    saldo_inicial: 0, entradas: 0, salidas: 0, stock_actual: 0,
+                    cantidad_comprometida: 0, total_consumo: 0, consumo_promedio_diario: 0,
+                    consumo_104_mes: 0, consumo_105_mes: 0,
+                }
             }
         })
     }
