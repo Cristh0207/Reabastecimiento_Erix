@@ -26,8 +26,7 @@ env/
 Thumbs.db
 desktop.ini
 
-# Streamlit
-.streamlit/secrets.toml
+
 
 # Data files (optional — uncomment if you don't want to track data)
 # *.csv
@@ -36,3 +35,12 @@ desktop.ini
 # Agents / Gemini
 .agents/
 .gemini/
+
+# Frontend Vite + y Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+.env.production
+.eslintcache
