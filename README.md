@@ -1,33 +1,119 @@
-# Nostra BI - Sistema de Reabastecimiento Clínica Vida
+# Nostra BI - Sistema de Reabastecimiento Clinica Vida
 
-Bienvenido al repositorio del Sistema de Reabastecimiento desarrollado por Nostra para la Clínica Vida. 
+Sistema de optimizacion y control de reabastecimiento de medicamentos e insumos medicos para las bodegas 1185 y 1188 de Clinica Vida.
 
-Este sistema es una herramienta integral diseñada para optimizar y automatizar el proceso de gestión de inventarios y control de reabastecimiento de medicamentos e insumos médicos, específicamente para las bodegas 1185 y 1188.
+Aplicacion 100% client-side (React + JavaScript), sin backend. Todo el procesamiento ocurre en el navegador.
 
-## ¿Qué hace este sistema?
+---
 
-El sistema ayuda al personal operativo y directivo a tomar decisiones informadas sobre qué productos deben ser pedidos, en qué cantidades y en qué momento, minimizando el riesgo de quedarse sin stock (ruptura de inventario).
+## Que hace el sistema
 
-### Características Principales:
+Recibe 3 archivos Excel exportados del ERP y calcula automaticamente que productos pedir, en que cantidades, basandose en consumo historico y stock actual.
 
-*   **Visión Unificada:** Consolida los movimientos de inventario diarios y el stock comprometido en canastas (kits de procedimientos) para dar una imagen precisa del inventario real disponible.
-*   **Proyección Inteligente:** Analiza el consumo promedio diario histórico de cada producto para proyectar la demanda futura y calcular el número de días de cobertura.
-*   **Gestión de Alertas Visuales:** Resalta automáticamente qué productos están por debajo del nivel óptimo de inventario y requieren ser reabastecidos con urgencia.
-*   **Exportación Automatizada:** Permite consolidar y descargar con un solo click un informe en Excel (`pedido_reabastecimiento.xlsx`) listo para ser procesado por compras.
-*   **Diseño Corporativo e Innovador:** Interfaz de usuario moderna, rápida y amigable, con modo escritorio optimizado ("pantalla fija") y diseño adaptativo para celulares, adaptada a la marca corporativa de Clínica Vida.
+### Archivos de entrada
 
-## Estructura del Proyecto
+| # | Archivo | Que contiene | Columnas clave |
+|---|---------|-------------|----------------|
+| 1 | **Inventario Mensual** | Stock al inicio del mes + movimientos del mes corriente (entradas/salidas). Las salidas reflejan concepto 104 (cargo a paciente) | A=bodega, B=codigo, C=saldo_inicial, E=entradas, G=salidas |
+| 2 | **Canastas (Kits)** | Stock comprometido en kits de procedimientos. No disponible para pedido | A=codigo, B=nombre, H=total |
+| 3 | **Consumo Historico (3 meses)** | Facturacion de los ultimos 3 meses. Conceptos 104 y 105 | C=servicio, G=codigo, K=cantidad, L=nombre, O=fecha, P=concepto |
 
-Este software está dividido en dos partes principales (arquitectura Cliente-Servidor) para asegurar su velocidad y escalabilidad futura a más módulos de la clínica:
+### Logica de calculo
 
-1.  **Frontend (El rostro del sistema):** La interfaz visual donde los usuarios interactúan. Lee más sobre ella en la carpeta `frontend/`.
-2.  **Backend (El cerebro del sistema):** El motor matemático y base de procesamiento que recibe los archivos Excel descargados del ERP, realiza los cálculos logísticos y envía la información al Frontend. Lee más en la carpeta `backend/`.
+```
+1. stock_actual = saldo_inicial + entradas - salidas  (inventario, ya incluye concepto 104)
+2. stock_real = stock_actual - consumo_105_mes         (restar consumo interno del mes, no reflejado en salidas)
+3. stock_disponible = stock_real - canastas             (canastas = stock estatico, no disponible)
+4. consumo_promedio_diario = total_consumo_3M / 90      (promedio robusto de 3 meses, conceptos 104+105)
+5. proyeccion = consumo_promedio_diario * dias          (demanda proyectada)
+6. cantidad_a_pedir = MAX(0, proyeccion - stock_disponible)
+```
 
-## Empezando Rápidamente
-Para desarrolladores o personal técnico que busque arrancar el sistema en su equipo local:
+**Filtros aplicados:**
+- Solo bodegas 1185 y 1188
+- Solo conceptos 104 (cargo a paciente) y 105 (consumo interno)
+- Mes corriente se detecta automaticamente por la columna de fecha (col O)
 
-1. Enciende el motor de procesamiento (Backend) usando Python.
-2. Enciende la interfaz visual (Frontend) usando Node.js.
-3. El sistema estará disponible entrando a `http://localhost:5173` desde el navegador.
+**Casos especiales:**
+- Producto en consumo pero NO en inventario: se agrega con stock 0 y genera pedido
+- Producto sin consumo historico: no genera pedido (sin demanda = sin base de calculo)
 
-*Para detalles técnicos de configuración, referirse a los archivos README dentro de cada carpeta (`backend/README.md` y `frontend/README.md`).*
+### KPIs en pantalla
+
+| KPI | Descripcion |
+|-----|-------------|
+| Total Productos | Referencias unicas procesadas |
+| Inventario Actual | Suma de stock_actual de todos los productos |
+| Comprometido en Kits | Total de unidades en canastas (no disponible) |
+| Stock Disponible | Inventario real disponible despues de ajustes |
+| Unidades a Pedir | Total de unidades que necesitan reabastecimiento |
+| Productos en Riesgo | Porcentaje de productos con cobertura menor a dias proyectados |
+| Consumo Paciente (Mes) | Total concepto 104 del mes corriente (dato real) |
+| Consumo Interno (Mes) | Total concepto 105 del mes corriente (dato real) |
+
+### Exportacion
+
+El Excel exportado contiene solo productos que necesitan pedido:
+- Codigo
+- Producto
+- Cantidad a Pedir
+
+---
+
+## Estructura del proyecto
+
+```
+Reabastecimiento_Erix/
+  frontend/
+    src/
+      services/
+        dataService.js        # Toda la logica de procesamiento (parsers + pipeline + export)
+      components/
+        App.jsx                # Componente principal
+        Dashboard.jsx          # Panel de graficas y tabla
+        Sidebar.jsx            # Panel lateral con inputs de archivos
+        KpiCards.jsx            # Tarjetas de indicadores
+        Charts.jsx             # Graficas (barras, Pareto, distribucion)
+      index.css                # Estilos corporativos Clinica Vida
+    vercel.json                # Configuracion SPA para Vercel
+    package.json
+```
+
+---
+
+## Ejecucion local
+
+**Requisitos:** Node.js 18+
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Abrir `http://localhost:5173` en el navegador.
+
+---
+
+## Deploy en Vercel (gratis)
+
+1. Subir el repositorio a GitHub
+2. Ir a [vercel.com](https://vercel.com) > Login con GitHub
+3. **Add New Project** > importar el repositorio
+4. Configurar:
+   - **Root Directory:** `frontend`
+   - **Framework Preset:** Vite
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+5. Click **Deploy**
+
+No se necesitan variables de entorno. No hay backend. Todo corre en el navegador.
+
+---
+
+## Tecnologias
+
+- **React 18** + **Vite** - Interfaz de usuario
+- **xlsx (SheetJS)** - Lectura/escritura de archivos Excel en el navegador
+- **Recharts** - Graficas interactivas
+- **Vercel** - Hosting estatico gratuito
