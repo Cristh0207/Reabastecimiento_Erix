@@ -659,47 +659,25 @@ export function generateDemoData(nProducts = 500, nDays = 90, seed = 42) {
 export function exportToExcel(reorderData) {
     const today = new Date().toISOString().split('T')[0]
 
-    // Preparar datos para el Excel
-    const exportRows = reorderData.map(r => ({
-        'Código': r.codigo,
-        'Producto': r.nombre,
-        'Stock Actual': r.stock_actual,
-        'Comprometido Kits': r.cantidad_comprometida,
-        'Ajuste C. Interno': r.ajuste_consumo_interno || 0,
-        'Stock Real': r.stock_real || r.stock_actual,
-        'Disponible': r.stock_disponible,
-        'Consumo Paciente (3M)': r.consumo_104 || 0,
-        'Consumo Interno (3M)': r.consumo_105 || 0,
-        'Consumo/Día': r.consumo_promedio_diario,
-        'Cobertura (Días)': r.cobertura_dias >= 9999 ? 'Sin consumo' : r.cobertura_dias,
-        'Proyección': r.proyeccion_20_dias,
-        'Cantidad a Pedir': r.cantidad_a_pedir,
-        'Estado': r.estado_riesgo,
-    }))
+    // Solo productos que necesitan pedido (cantidad_a_pedir > 0)
+    const exportRows = reorderData
+        .filter(r => r.cantidad_a_pedir > 0)
+        .map(r => ({
+            'Codigo': r.codigo,
+            'Producto': r.nombre,
+            'Cantidad a Pedir': r.cantidad_a_pedir,
+        }))
 
     const ws = XLSX.utils.json_to_sheet(exportRows)
 
-    // Ajustar ancho de columnas
     ws['!cols'] = [
-        { wch: 12 },  // Código
-        { wch: 35 },  // Producto
-        { wch: 12 },  // Stock Actual
-        { wch: 15 },  // Comprometido Kits
-        { wch: 15 },  // Ajuste C. Interno
-        { wch: 12 },  // Stock Real
-        { wch: 12 },  // Disponible
-        { wch: 18 },  // Consumo Paciente
-        { wch: 18 },  // Consumo Interno
-        { wch: 12 },  // Consumo/Día
-        { wch: 15 },  // Cobertura
-        { wch: 12 },  // Proyección
-        { wch: 15 },  // Cantidad a Pedir
-        { wch: 12 },  // Estado
+        { wch: 14 },  // Codigo
+        { wch: 40 },  // Producto
+        { wch: 18 },  // Cantidad a Pedir
     ]
 
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Pedido Reabastecimiento')
 
-    // Descargar
     XLSX.writeFile(wb, `pedido_reabastecimiento_${today}.xlsx`)
 }
